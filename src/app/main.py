@@ -4,11 +4,14 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from app.api.wecom import router as wecom_router
 from app.config import get_settings
+from app.db import init_db
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    init_db()
     yield
 
 
@@ -19,6 +22,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    application.include_router(wecom_router)
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, Any]:

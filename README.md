@@ -18,6 +18,8 @@
 
 第一阶段：FastAPI 项目骨架与健康检查已实现。
 
+第二阶段：mock 企业微信消息入口已实现，支持消息标准化与 `msg_id` 幂等去重。
+
 ## 本地启动
 
 ```powershell
@@ -27,6 +29,15 @@ python -m venv .venv
 ```
 
 健康检查：`http://127.0.0.1:8000/health`
+
+Mock 企业微信消息接收：
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8000/wecom/messages `
+  -ContentType "application/json" `
+  -Body '{"msg_id":"wecom-msg-001","group_id":"group-001","group_name":"周末聚餐群","sender_id":"user-001","sender_name":"张三","msg_type":"text","content":"周六晚上一起吃饭吗？"}'
+```
 
 运行测试：
 

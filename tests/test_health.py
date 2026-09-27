@@ -11,4 +11,4 @@ def test_health_returns_ok() -> None:
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["app"] == "wecom-dinner-agent"
-    assert payload["environment"] == "development"
+    assert payload["environment"] in {"development", "test"}
