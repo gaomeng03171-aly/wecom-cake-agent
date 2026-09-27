@@ -16,7 +16,23 @@
 
 ## 当前状态
 
-项目骨架初始化阶段，尚未实现业务代码。
+第一阶段：FastAPI 项目骨架与健康检查已实现。
+
+## 本地启动
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir src --reload
+```
+
+健康检查：`http://127.0.0.1:8000/health`
+
+运行测试：
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
 
 ## 计划中的 MVP
 
