@@ -19,6 +19,7 @@ def test_wecom_message_is_stored_and_deduplicated(client) -> None:
     assert first_payload["message_id"] == 1
     assert first_payload["dify_error"] is None
     assert first_payload["analysis"]["intent"] == "create_dinner"
+    assert first_payload["activity"]["status"] == "collecting"
 
     assert second.status_code == 200
     second_payload = second.json()
@@ -26,6 +27,7 @@ def test_wecom_message_is_stored_and_deduplicated(client) -> None:
     assert second_payload["duplicate"] is True
     assert second_payload["message_id"] == 1
     assert second_payload["analysis"] is None
+    assert second_payload["activity"] is None
 
 
 def test_wecom_message_requires_msg_id(client) -> None:

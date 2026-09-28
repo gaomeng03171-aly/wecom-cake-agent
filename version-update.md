@@ -148,3 +148,42 @@ POST /wecom/messages
 2. 实现聚餐活动状态机
 3. 增加参与者偏好和候选方案
 4. 实现投票和最终方案确认
+
+## 0.4 - 2026-09-28
+
+### 当前完成内容
+
+1. 增加聚餐活动模型
+   - 新增 DinnerActivity 数据表
+   - 记录群组、发起人、标题、状态、时间等信息
+   - 支持 updated_at 自动更新
+
+2. 增加活动状态机
+   - collecting -> proposing -> voting -> confirmed -> completed
+   - 支持取消状态
+   - 非法状态流转返回 409
+
+3. 接入消息创建活动
+   - create_dinner 识别结果会创建活动
+   - 同一群组只保留一个进行中的活动
+   - 消息响应增加 activity 字段
+
+4. 增加活动接口
+   - GET /activities/{group_id}/active
+   - POST /activities/{activity_id}/transition
+
+### 本次主要变化
+
+- 新增 models.DinnerActivity
+- 新增 schemas/activity.py
+- 新增 services/activities.py
+- 新增 api/activities.py
+- 消息处理流程增加活动创建
+
+### 后续计划
+
+1. 增加参与者模型和加入退出功能
+2. 收集参与者偏好
+3. 生成候选方案
+4. 实现投票与最终方案确认
+5. 增加 Outbox 发送链路
