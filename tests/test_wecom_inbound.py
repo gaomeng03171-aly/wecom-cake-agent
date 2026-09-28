@@ -13,18 +13,19 @@ def test_wecom_message_is_stored_and_deduplicated(client) -> None:
     second = client.post("/wecom/messages", json=payload)
 
     assert first.status_code == 200
-    assert first.json() == {
-        "accepted": True,
-        "duplicate": False,
-        "message_id": 1,
-    }
+    first_payload = first.json()
+    assert first_payload["accepted"] is True
+    assert first_payload["duplicate"] is False
+    assert first_payload["message_id"] == 1
+    assert first_payload["dify_error"] is None
+    assert first_payload["analysis"]["intent"] == "create_dinner"
 
     assert second.status_code == 200
-    assert second.json() == {
-        "accepted": True,
-        "duplicate": True,
-        "message_id": 1,
-    }
+    second_payload = second.json()
+    assert second_payload["accepted"] is True
+    assert second_payload["duplicate"] is True
+    assert second_payload["message_id"] == 1
+    assert second_payload["analysis"] is None
 
 
 def test_wecom_message_requires_msg_id(client) -> None:

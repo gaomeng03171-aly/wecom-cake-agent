@@ -104,3 +104,47 @@ POST /wecom/messages
 6. 增加 Outbox 发送链路
 7. 增加活动提醒
 8. 增加简单的管理查询或后台
+
+## 0.3 - 2026-09-28
+
+### 当前完成内容
+
+1. 增加 Dify 客户端边界
+   - 定义 DifyClient 抽象接口
+   - 实现 MockDifyClient
+   - 根据配置选择 mock 或真实客户端
+
+2. 增加 Dify 结构化输出
+   - 定义 DifyWorkflowResult
+   - 定义 DinnerDifyOutput
+   - 对 Dify 返回结果进行 Pydantic 校验
+
+3. 接入消息处理流程
+   - 消息首次入库后调用 Dify 分析
+   - 重复消息不重复调用 Dify
+   - Dify 解析失败时返回 dify_error
+
+### 本次主要变化
+
+- API 响应增加 analysis 和 dify_error 字段
+- 新增 clients/dify.py
+- 新增 schemas/dify.py
+- 新增 services/dify.py
+- 新增 services/processing.py
+
+### 当前请求链路
+
+```text
+POST /wecom/messages
+  -> 幂等入库
+  -> 首次消息调用 Dify mock
+  -> Pydantic 校验 Dify 输出
+  -> 返回 analysis 或 dify_error
+```
+
+### 后续计划
+
+1. 实现真实 Dify HTTP 客户端
+2. 实现聚餐活动状态机
+3. 增加参与者偏好和候选方案
+4. 实现投票和最终方案确认

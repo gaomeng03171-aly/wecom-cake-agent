@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas.wecom import WeComMessageIn, WeComMessageReceiveResponse
-from app.services.inbound import receive_message
+from app.services.processing import process_inbound_message
 
 router = APIRouter(prefix="/wecom", tags=["wecom"])
 
@@ -13,4 +13,4 @@ def receive_wecom_message(
     payload: WeComMessageIn,
     db: Session = Depends(get_db),
 ) -> WeComMessageReceiveResponse:
-    return receive_message(db, payload)
+    return process_inbound_message(db, payload)

@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.schemas.dify import DinnerDifyOutput
+
 
 class WeComMessageIn(BaseModel):
     msg_id: str
@@ -20,3 +22,5 @@ class WeComMessageReceiveResponse(BaseModel):
     accepted: bool
     duplicate: bool
     message_id: int | None = None
+    analysis: DinnerDifyOutput | None = None
+    dify_error: str | None = None
