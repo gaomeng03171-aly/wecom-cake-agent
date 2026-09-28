@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import ActivityStatus, DinnerActivity, utc_now
+from app.models import ActivityParticipant, ActivityStatus, DinnerActivity, utc_now
 from app.schemas.dify import DinnerDifyOutput
 from app.schemas.wecom import WeComMessageIn
 
@@ -74,6 +74,14 @@ def create_activity_from_message(
         deadline=analysis.deadline,
     )
     db.add(activity)
+    db.flush()
+    db.add(
+        ActivityParticipant(
+            activity_id=activity.id,
+            user_id=message.sender_id,
+            user_name=message.sender_name,
+        )
+    )
     db.commit()
     db.refresh(activity)
     return activity

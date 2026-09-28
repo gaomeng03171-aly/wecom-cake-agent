@@ -24,3 +24,34 @@ class DinnerActivityOut(BaseModel):
 
 class ActivityTransitionIn(BaseModel):
     status: ActivityStatus
+
+
+class ActivityParticipantOut(BaseModel):
+    id: int
+    activity_id: int
+    user_id: str
+    user_name: str
+    available_time: str | None
+    cuisine_preference: str | None
+    budget_max: int | None
+    notes: str | None
+    joined_at: datetime
+    left_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JoinActivityIn(BaseModel):
+    user_id: str
+    user_name: str = ""
+    available_time: str | None = None
+    cuisine_preference: str | None = None
+    budget_max: int | None = None
+    notes: str | None = None
+
+
+class UpdatePreferenceIn(BaseModel):
+    available_time: str | None = None
+    cuisine_preference: str | None = None
+    budget_max: int | None = None
+    notes: str | None = None

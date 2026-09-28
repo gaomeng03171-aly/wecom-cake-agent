@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from app import __version__
 from app.api.activities import router as activities_router
+from app.api.participants import router as participants_router
 from app.api.wecom import router as wecom_router
 from app.config import get_settings
 from app.db import init_db
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     application.include_router(activities_router)
+    application.include_router(participants_router)
     application.include_router(wecom_router)
 
     @application.get("/health", tags=["system"])

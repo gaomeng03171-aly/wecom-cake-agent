@@ -187,3 +187,43 @@ POST /wecom/messages
 3. 生成候选方案
 4. 实现投票与最终方案确认
 5. 增加 Outbox 发送链路
+
+## 0.5 - 2026-09-28
+
+### 当前完成内容
+
+1. 增加参与者模型
+   - 新增 ActivityParticipant 数据表
+   - 同一活动内用户唯一
+   - 支持加入时间和退出时间
+
+2. 活动创建时自动加入发起人
+   - 发起人作为首个参与者写入
+   - 活动与参与者保持关联
+
+3. 增加参与者接口
+   - POST /activities/{activity_id}/participants
+   - GET /activities/{activity_id}/participants
+   - PUT /activities/{activity_id}/participants/{user_id}
+   - POST /activities/{activity_id}/participants/{user_id}/leave
+
+4. 支持参与者偏好
+   - 可记录可参加时间
+   - 可记录口味偏好
+   - 可记录预算上限
+   - 可记录备注
+
+### 本次主要变化
+
+- 新增 models.ActivityParticipant
+- 新增 services/participants.py
+- 新增 api/participants.py
+- 活动创建逻辑增加发起人写入
+
+### 后续计划
+
+1. 从自然语言消息中自动抽取参与者偏好
+2. 生成候选方案
+3. 实现投票与最终方案确认
+4. 增加 Outbox 发送链路
+5. 增加活动提醒

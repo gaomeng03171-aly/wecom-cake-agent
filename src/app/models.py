@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Integer, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -64,4 +64,35 @@ class DinnerActivity(Base):
         DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
+    )
+
+
+class ActivityParticipant(Base):
+    __tablename__ = "activity_participants"
+    __table_args__ = (
+        UniqueConstraint(
+            "activity_id",
+            "user_id",
+            name="uq_activity_participant",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    activity_id: Mapped[int] = mapped_column(
+        ForeignKey("dinner_activities.id"),
+        index=True,
+    )
+    user_id: Mapped[str] = mapped_column(String(128), index=True)
+    user_name: Mapped[str] = mapped_column(String(255), default="")
+    available_time: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cuisine_preference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    budget_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
+    left_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
