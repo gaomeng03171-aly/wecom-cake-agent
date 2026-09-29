@@ -24,6 +24,25 @@ class MockDifyClient(DifyClient):
                 "missing_fields": ["口味", "预算", "人数"],
                 "reply": "收到，我来帮大家组织聚餐。请告诉我口味、预算和人数。",
             }
+        elif any(keyword in content for keyword in ("生成方案", "推荐方案", "有什么方案")):
+            outputs = {
+                "intent": "generate_proposals",
+                "activity_title": None,
+                "suggested_time": None,
+                "deadline": None,
+                "missing_fields": [],
+                "reply": "我来根据大家的偏好生成聚餐方案。",
+            }
+        elif self._extract_vote_choice(content) is not None:
+            outputs = {
+                "intent": "vote",
+                "activity_title": None,
+                "suggested_time": None,
+                "deadline": None,
+                "proposal_choice": self._extract_vote_choice(content),
+                "missing_fields": [],
+                "reply": "已记录你的投票。",
+            }
         elif any(
             keyword in content
             for keyword in ("想吃", "预算", "可以", "有空", "不要", "不吃", "不能吃")
@@ -62,6 +81,12 @@ class MockDifyClient(DifyClient):
                 "reply": "请告诉我聚餐的时间、人数、口味和预算。",
             }
         return DifyWorkflowResult(success=True, outputs=outputs)
+
+    def _extract_vote_choice(self, content: str) -> int | None:
+        match = re.search(r"(?:选|投|方案)\s*([1-9])", content)
+        if match:
+            return int(match.group(1))
+        return None
 
     def _extract_available_time(self, content: str) -> str | None:
         keywords = ("周六", "周日", "周五", "周四", "周三", "周二", "周一", "晚上", "中午")

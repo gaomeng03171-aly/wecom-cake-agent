@@ -11,6 +11,12 @@ ACTIVE_STATUSES = {
     ActivityStatus.VOTING,
 }
 
+ACTIVE_PARTICIPATION_STATUSES = {
+    ActivityStatus.COLLECTING,
+    ActivityStatus.PROPOSING,
+    ActivityStatus.VOTING,
+}
+
 ALLOWED_TRANSITIONS: dict[ActivityStatus, set[ActivityStatus]] = {
     ActivityStatus.COLLECTING: {
         ActivityStatus.PROPOSING,

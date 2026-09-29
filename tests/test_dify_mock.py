@@ -26,3 +26,12 @@ def test_mock_dify_extracts_preferences() -> None:
     assert result.outputs["cuisine_preference"] == "火锅"
     assert result.outputs["budget_max"] == 80
     assert result.outputs["notes"] == "不要香菜"
+
+
+def test_mock_dify_recognizes_generate_proposals_and_vote() -> None:
+    generate = MockDifyClient().run({"content": "帮我生成方案"})
+    vote = MockDifyClient().run({"content": "我选2"})
+
+    assert generate.outputs["intent"] == "generate_proposals"
+    assert vote.outputs["intent"] == "vote"
+    assert vote.outputs["proposal_choice"] == 2

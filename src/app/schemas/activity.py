@@ -55,3 +55,33 @@ class UpdatePreferenceIn(BaseModel):
     cuisine_preference: str | None = None
     budget_max: int | None = None
     notes: str | None = None
+
+
+class DinnerProposalOut(BaseModel):
+    id: int
+    activity_id: int
+    title: str
+    proposed_time: str
+    cuisine: str
+    budget_estimate: int | None
+    notes: str | None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VoteOut(BaseModel):
+    id: int
+    activity_id: int
+    proposal_id: int
+    user_id: str
+    user_name: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VoteIn(BaseModel):
+    user_id: str
+    user_name: str = ""
+    proposal_id: int

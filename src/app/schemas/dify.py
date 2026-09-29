@@ -10,9 +10,13 @@ class DifyWorkflowResult(BaseModel):
 
 
 class DinnerDifyOutput(BaseModel):
-    intent: Literal["create_dinner", "provide_preference", "vote", "unknown"] = (
-        "unknown"
-    )
+    intent: Literal[
+        "create_dinner",
+        "provide_preference",
+        "generate_proposals",
+        "vote",
+        "unknown",
+    ] = "unknown"
     activity_title: str | None = None
     suggested_time: str | None = None
     deadline: str | None = None
@@ -20,5 +24,6 @@ class DinnerDifyOutput(BaseModel):
     cuisine_preference: str | None = None
     budget_max: int | None = None
     notes: str | None = None
+    proposal_choice: int | None = None
     missing_fields: list[str] = Field(default_factory=list)
     reply: str = ""

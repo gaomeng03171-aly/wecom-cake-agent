@@ -96,3 +96,45 @@ class ActivityParticipant(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+
+
+class DinnerProposal(Base):
+    __tablename__ = "dinner_proposals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    activity_id: Mapped[int] = mapped_column(
+        ForeignKey("dinner_activities.id"),
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(255))
+    proposed_time: Mapped[str] = mapped_column(String(255), default="待确认")
+    cuisine: Mapped[str] = mapped_column(String(255), default="待确认")
+    budget_estimate: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
+
+
+class Vote(Base):
+    __tablename__ = "votes"
+    __table_args__ = (
+        UniqueConstraint("activity_id", "user_id", name="uq_activity_vote"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    activity_id: Mapped[int] = mapped_column(
+        ForeignKey("dinner_activities.id"),
+        index=True,
+    )
+    proposal_id: Mapped[int] = mapped_column(
+        ForeignKey("dinner_proposals.id"),
+        index=True,
+    )
+    user_id: Mapped[str] = mapped_column(String(128), index=True)
+    user_name: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )

@@ -262,3 +262,50 @@ POST /wecom/messages
 3. 增加 Outbox 发送链路
 4. 增加活动提醒
 5. 增加真实 Dify HTTP 客户端
+
+## 0.7 - 2026-09-29
+
+### 当前完成内容
+
+1. 增加候选方案模型
+   - 新增 DinnerProposal 数据表
+   - 根据参与者时间、口味和预算生成方案
+   - 默认生成三个候选方案
+
+2. 增加投票模型
+   - 新增 Vote 数据表
+   - 同一用户在同一活动内只能保留一条投票
+   - 重复投票会更新原选择
+
+3. 扩展 Dify mock
+   - 支持 generate_proposals
+   - 支持 vote
+   - 支持从“我选 2”中抽取方案编号
+
+4. 增加方案与投票接口
+   - POST /activities/{activity_id}/generate-proposals
+   - GET /activities/{activity_id}/proposals
+   - POST /activities/{activity_id}/start-voting
+   - POST /activities/{activity_id}/votes
+   - POST /activities/{activity_id}/confirm
+
+5. 接入自然语言流程
+   - “生成方案”自动生成候选方案
+   - “我选 1”自动记录投票
+   - 确认接口根据票数选择最终方案
+
+### 本次主要变化
+
+- 新增 models.DinnerProposal
+- 新增 models.Vote
+- 新增 services/proposals.py
+- 新增 api/proposals.py
+- 扩展 Dify mock 和消息处理流程
+
+### 后续计划
+
+1. 增加 Outbox 发送与回复
+2. 增加活动提醒
+3. 增加真实 Dify HTTP 客户端
+4. 增加管理查询或后台
+5. PostgreSQL + Alembic + Docker Compose

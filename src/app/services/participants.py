@@ -1,12 +1,13 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import ActivityParticipant, ActivityStatus, DinnerActivity, utc_now
+from app.models import ActivityParticipant, DinnerActivity, utc_now
 from app.schemas.activity import (
     ActivityParticipantOut,
     JoinActivityIn,
     UpdatePreferenceIn,
 )
+from app.services.activities import ACTIVE_PARTICIPATION_STATUSES
 
 
 class ParticipantServiceError(RuntimeError):
@@ -20,10 +21,7 @@ def get_activity_or_raise(
     activity = db.get(DinnerActivity, activity_id)
     if activity is None:
         raise ParticipantServiceError("activity not found")
-    if activity.status in {
-        ActivityStatus.COMPLETED.value,
-        ActivityStatus.CANCELLED.value,
-    }:
+    if activity.status not in {status.value for status in ACTIVE_PARTICIPATION_STATUSES}:
         raise ParticipantServiceError("activity is not active")
     return activity
 

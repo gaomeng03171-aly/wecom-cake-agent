@@ -1,0 +1,129 @@
+def _create_activity(client, msg_id: str, group_id: str) -> int:
+    response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": msg_id,
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "周六约饭",
+        },
+    )
+    assert response.status_code == 200
+    return response.json()["activity"]["id"]
+
+
+def _add_preference(client, group_id: str) -> None:
+    response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": f"preference-{group_id}",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-002",
+            "sender_name": "李四",
+            "msg_type": "text",
+            "content": "我周六晚上可以，想吃火锅，预算80，不要香菜",
+        },
+    )
+    assert response.status_code == 200
+
+
+def test_generate_proposals_and_vote_flow(client) -> None:
+    group_id = "proposal-group-001"
+    activity_id = _create_activity(
+        client,
+        "wecom-proposal-001",
+        group_id,
+    )
+    _add_preference(client, group_id)
+
+    generate_response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-proposal-002",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "生成方案",
+        },
+    )
+
+    assert generate_response.status_code == 200
+    generate_payload = generate_response.json()
+    assert generate_payload["analysis"]["intent"] == "generate_proposals"
+    assert generate_payload["activity"]["status"] == "proposing"
+    assert len(generate_payload["proposals"]) == 3
+
+    start_response = client.post(f"/activities/{activity_id}/start-voting")
+    assert start_response.status_code == 200
+    assert start_response.json()["status"] == "voting"
+
+    first_vote = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-vote-001",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "我选1",
+        },
+    )
+    assert first_vote.status_code == 200
+    assert first_vote.json()["vote"]["proposal_id"] == 1
+
+    second_vote = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-vote-002",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-002",
+            "sender_name": "李四",
+            "msg_type": "text",
+            "content": "我选2",
+        },
+    )
+    assert second_vote.status_code == 200
+    assert second_vote.json()["vote"]["proposal_id"] == 2
+
+    confirm_response = client.post(f"/activities/{activity_id}/confirm")
+    assert confirm_response.status_code == 200
+    assert confirm_response.json()["status"] == "confirmed"
+    assert confirm_response.json()["confirmed_plan"] is not None
+
+
+def test_generate_proposals_requires_participants(client) -> None:
+    activity_id = _create_activity(
+        client,
+        "wecom-proposal-003",
+        "proposal-group-002",
+    )
+
+    # Remove the only participant, then attempt generation.
+    leave_response = client.post(
+        f"/activities/{activity_id}/participants/user-001/leave"
+    )
+    assert leave_response.status_code == 200
+
+    response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-proposal-004",
+            "group_id": "proposal-group-002",
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "生成方案",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["dify_error"] == "no active participants"
