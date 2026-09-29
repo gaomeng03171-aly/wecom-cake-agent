@@ -61,11 +61,16 @@ def join_activity(
         )
         db.add(participant)
     else:
-        participant.user_name = payload.user_name or participant.user_name
-        participant.available_time = payload.available_time
-        participant.cuisine_preference = payload.cuisine_preference
-        participant.budget_max = payload.budget_max
-        participant.notes = payload.notes
+        if payload.user_name:
+            participant.user_name = payload.user_name
+        if "available_time" in payload.model_fields_set:
+            participant.available_time = payload.available_time
+        if "cuisine_preference" in payload.model_fields_set:
+            participant.cuisine_preference = payload.cuisine_preference
+        if "budget_max" in payload.model_fields_set:
+            participant.budget_max = payload.budget_max
+        if "notes" in payload.model_fields_set:
+            participant.notes = payload.notes
         participant.left_at = None
 
     db.commit()
@@ -100,10 +105,14 @@ def update_preferences(
     if participant is None or participant.left_at is not None:
         raise ParticipantServiceError("active participant not found")
 
-    participant.available_time = payload.available_time
-    participant.cuisine_preference = payload.cuisine_preference
-    participant.budget_max = payload.budget_max
-    participant.notes = payload.notes
+    if "available_time" in payload.model_fields_set:
+        participant.available_time = payload.available_time
+    if "cuisine_preference" in payload.model_fields_set:
+        participant.cuisine_preference = payload.cuisine_preference
+    if "budget_max" in payload.model_fields_set:
+        participant.budget_max = payload.budget_max
+    if "notes" in payload.model_fields_set:
+        participant.notes = payload.notes
 
     db.commit()
     db.refresh(participant)
@@ -122,3 +131,21 @@ def list_participants(
         statement = statement.where(ActivityParticipant.left_at.is_(None))
     statement = statement.order_by(ActivityParticipant.joined_at)
     return list(db.scalars(statement).all())
+
+
+def apply_preferences_from_message(
+    db: Session,
+    activity_id: int,
+    user_id: str,
+    user_name: str,
+    analysis,
+) -> ActivityParticipant:
+    payload = JoinActivityIn(
+        user_id=user_id,
+        user_name=user_name,
+        available_time=analysis.available_time,
+        cuisine_preference=analysis.cuisine_preference,
+        budget_max=analysis.budget_max,
+        notes=analysis.notes,
+    )
+    return join_activity(db, activity_id, payload)

@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 
-from app.schemas.activity import DinnerActivityOut
+from app.schemas.activity import ActivityParticipantOut, DinnerActivityOut
 from app.schemas.wecom import WeComMessageIn, WeComMessageReceiveResponse
-from app.services.activities import create_activity_from_message
+from app.services.activities import create_activity_from_message, find_active_activity
 from app.services.dify import DifyServiceError, analyze_dinner_message
 from app.services.inbound import receive_message
+from app.services.participants import apply_preferences_from_message
 
 
 def process_inbound_message(
@@ -23,12 +24,28 @@ def process_inbound_message(
         )
 
     activity = None
+    participant = None
     if analysis.intent == "create_dinner":
         activity = create_activity_from_message(db, payload, analysis)
+    elif analysis.intent == "provide_preference":
+        activity = find_active_activity(db, payload.group_id)
+        if activity is not None:
+            participant = apply_preferences_from_message(
+                db,
+                activity.id,
+                payload.sender_id,
+                payload.sender_name,
+                analysis,
+            )
 
     return stored.model_copy(
         update={
             "analysis": analysis,
             "activity": DinnerActivityOut.model_validate(activity) if activity else None,
+            "participant": (
+                ActivityParticipantOut.model_validate(participant)
+                if participant
+                else None
+            ),
         }
     )

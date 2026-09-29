@@ -16,5 +16,9 @@ class DinnerDifyOutput(BaseModel):
     activity_title: str | None = None
     suggested_time: str | None = None
     deadline: str | None = None
+    available_time: str | None = None
+    cuisine_preference: str | None = None
+    budget_max: int | None = None
+    notes: str | None = None
     missing_fields: list[str] = Field(default_factory=list)
     reply: str = ""

@@ -227,3 +227,38 @@ POST /wecom/messages
 3. 实现投票与最终方案确认
 4. 增加 Outbox 发送链路
 5. 增加活动提醒
+
+## 0.6 - 2026-09-29
+
+### 当前完成内容
+
+1. 扩展 Dify mock 意图识别
+   - 支持 create_dinner
+   - 支持 provide_preference
+   - 支持 unknown
+
+2. 增加自然语言偏好抽取
+   - 抽取可参加时间
+   - 抽取口味偏好
+   - 抽取预算上限
+   - 抽取忌口备注
+
+3. 偏好自动更新参与者
+   - 有活动进行中时，按 sender_id 更新对应参与者
+   - 参与者不存在时自动加入
+   - 消息响应增加 participant 字段
+
+### 本次主要变化
+
+- 扩展 clients/dify.py
+- 扩展 schemas/dify.py
+- 新增 services/participants.apply_preferences_from_message
+- 消息处理流程增加偏好分支
+
+### 后续计划
+
+1. 生成候选方案
+2. 实现投票与最终方案确认
+3. 增加 Outbox 发送链路
+4. 增加活动提醒
+5. 增加真实 Dify HTTP 客户端

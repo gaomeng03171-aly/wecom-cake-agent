@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.schemas.activity import DinnerActivityOut
+from app.schemas.activity import ActivityParticipantOut, DinnerActivityOut
 from app.schemas.dify import DinnerDifyOutput
 
 
@@ -26,3 +26,4 @@ class WeComMessageReceiveResponse(BaseModel):
     analysis: DinnerDifyOutput | None = None
     dify_error: str | None = None
     activity: DinnerActivityOut | None = None
+    participant: ActivityParticipantOut | None = None
