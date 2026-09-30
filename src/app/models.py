@@ -138,3 +138,47 @@ class Vote(Base):
         DateTime(timezone=True),
         default=utc_now,
     )
+
+
+class OutboxStatus(StrEnum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+class OutboxMessage(Base):
+    __tablename__ = "outbox_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    activity_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dinner_activities.id"),
+        nullable=True,
+        index=True,
+    )
+    group_id: Mapped[str] = mapped_column(String(128), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(
+        String(32),
+        default=OutboxStatus.PENDING.value,
+        index=True,
+    )
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provider_message_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )

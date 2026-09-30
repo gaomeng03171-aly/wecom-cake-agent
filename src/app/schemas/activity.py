@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models import ActivityStatus
+from app.models import ActivityStatus, OutboxStatus
 
 
 class DinnerActivityOut(BaseModel):
@@ -85,3 +85,27 @@ class VoteIn(BaseModel):
     user_id: str
     user_name: str = ""
     proposal_id: int
+
+
+class OutboxMessageOut(BaseModel):
+    id: int
+    activity_id: int | None
+    group_id: str
+    content: str
+    status: OutboxStatus
+    retry_count: int
+    max_retries: int
+    last_error: str | None
+    provider_message_id: str | None
+    created_at: datetime
+    updated_at: datetime
+    sent_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OutboxCreateIn(BaseModel):
+    group_id: str
+    content: str
+    activity_id: int | None = None
+    dispatch: bool = True

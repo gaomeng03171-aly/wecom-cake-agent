@@ -30,6 +30,8 @@
 
 第七阶段：候选方案生成、投票和最终方案确认已实现。
 
+第八阶段：Outbox 发送链路已实现，支持 pending、sent、failed 和重试。
+
 ## 本地启动
 
 ```powershell

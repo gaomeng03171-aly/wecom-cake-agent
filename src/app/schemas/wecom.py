@@ -8,6 +8,7 @@ from app.schemas.activity import (
     DinnerActivityOut,
     DinnerProposalOut,
     VoteOut,
+    OutboxMessageOut,
 )
 from app.schemas.dify import DinnerDifyOutput
 
@@ -34,3 +35,4 @@ class WeComMessageReceiveResponse(BaseModel):
     participant: ActivityParticipantOut | None = None
     proposals: list[DinnerProposalOut] = Field(default_factory=list)
     vote: VoteOut | None = None
+    outbox: OutboxMessageOut | None = None
