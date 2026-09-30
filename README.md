@@ -40,6 +40,8 @@
 
 第十二阶段：只读管理查询接口已实现，可查看总览、活动详情、消息、Outbox 和提醒。
 
+第十三阶段：PostgreSQL、Alembic 和 Docker Compose 已接入，支持正式数据库迁移与容器部署。
+
 ## 本地启动
 
 ```powershell
@@ -127,6 +129,31 @@ GET /admin/messages
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
+
+## 数据库迁移
+
+本地 SQLite 模式仍可使用 `AUTO_CREATE_TABLES=true` 自动建表。需要迁移管理时运行：
+
+```powershell
+.\.venv\Scripts\alembic.exe upgrade head
+```
+
+切换 PostgreSQL 时配置：
+
+```text
+DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/wecom_dinner
+AUTO_CREATE_TABLES=false
+```
+
+## Docker Compose
+
+Compose 会启动 PostgreSQL 和应用，并在应用启动前执行 `alembic upgrade head`：
+
+```powershell
+docker compose up --build
+```
+
+可在项目根目录的 `.env` 中覆盖 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 以及外部服务配置。
 
 ## 计划中的 MVP
 

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_port: int = 8000
     admin_api_key: str = ""
     database_url: str = "sqlite:///./dev.db"
+    auto_create_tables: bool = True
 
     dify_client_mode: str = "mock"
     dify_api_base: str = ""

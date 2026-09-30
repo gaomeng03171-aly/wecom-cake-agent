@@ -512,3 +512,43 @@ POST /wecom/messages
 2. 增加端到端演示脚本
 3. 接入企业微信智能机器人或自建应用回调
 4. 增加简单管理前端
+
+## 0.13 - 2026-09-30
+
+### 当前完成内容
+
+1. 接入 PostgreSQL
+   - 增加 psycopg 驱动
+   - 支持 postgresql+psycopg 连接串
+   - 本地仍默认使用 SQLite
+
+2. 接入 Alembic
+   - 增加 alembic.ini
+   - 增加 migrations/env.py
+   - 生成初始数据库迁移
+   - 验证 alembic upgrade head 可独立建表
+
+3. 增加数据库初始化开关
+   - AUTO_CREATE_TABLES=true 时保持本地自动建表
+   - 容器环境设置为 false，由 Alembic 管理结构
+
+4. 增加 Docker 部署
+   - Dockerfile
+   - docker-compose.yml
+   - PostgreSQL healthcheck
+   - 应用启动前执行数据库迁移
+   - .dockerignore
+
+### 本次主要变化
+
+- pyproject.toml 增加 alembic 和 psycopg
+- 新增 migrations 目录和初始迁移
+- 新增 Dockerfile 和 docker-compose.yml
+- README 增加数据库迁移和 Docker 使用说明
+
+### 后续计划
+
+1. 增加端到端演示脚本
+2. 接入企业微信智能机器人或自建应用回调
+3. 增加简单管理前端
+4. 增加部署配置示例和运行文档
