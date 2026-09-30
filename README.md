@@ -38,6 +38,8 @@
 
 第十一阶段：企业微信群机器人 Webhook 发送客户端已实现，可通过环境变量切换 mock 和真实发送。
 
+第十二阶段：只读管理查询接口已实现，可查看总览、活动详情、消息、Outbox 和提醒。
+
 ## 本地启动
 
 ```powershell
@@ -96,6 +98,29 @@ WECOM_SENDER_TIMEOUT_SECONDS=10
 ```
 
 当前实现使用企业微信官方群机器人 Webhook，适合验证消息发送和 Outbox 状态。完整接收群消息仍需要后续接入企业微信智能机器人或自建应用回调。
+
+## 管理查询接口
+
+本地开发默认不要求管理密钥。部署到共享环境前，建议设置：
+
+```text
+ADMIN_API_KEY=your-admin-key
+```
+
+设置后请求需要携带：
+
+```text
+X-Admin-Key: your-admin-key
+```
+
+可用接口：
+
+```text
+GET /admin/overview
+GET /admin/activities
+GET /admin/activities/{activity_id}
+GET /admin/messages
+```
 
 运行测试：
 

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from app import __version__
 from app.api.activities import router as activities_router
+from app.api.admin import router as admin_router
 from app.api.outbox import router as outbox_router
 from app.api.participants import router as participants_router
 from app.api.proposals import router as proposals_router
@@ -32,6 +33,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     application.include_router(activities_router)
+    application.include_router(admin_router)
     application.include_router(participants_router)
     application.include_router(proposals_router)
     application.include_router(outbox_router)

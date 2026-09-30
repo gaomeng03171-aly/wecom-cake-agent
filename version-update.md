@@ -468,3 +468,47 @@ POST /wecom/messages
 2. PostgreSQL + Alembic + Docker Compose
 3. 增加端到端演示脚本
 4. 接入企业微信智能机器人或自建应用回调
+
+## 0.12 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加管理总览
+   - 活动总数和进行中活动数
+   - 消息、参与者、方案和投票数量
+   - Outbox 和提醒状态数量
+
+2. 增加活动详情聚合
+   - 活动基本信息
+   - 参与者和偏好
+   - 候选方案和投票
+   - Outbox 消息
+   - 提醒计划
+
+3. 增加消息查询
+   - 按群组过滤
+   - 支持分页
+
+4. 增加管理鉴权
+   - 默认本地开放
+   - 配置 ADMIN_API_KEY 后要求 X-Admin-Key
+
+5. 增加管理接口
+   - GET /admin/overview
+   - GET /admin/activities
+   - GET /admin/activities/{activity_id}
+   - GET /admin/messages
+
+### 本次主要变化
+
+- 新增 services/admin.py
+- 新增 api/admin.py
+- 扩展 Outbox 查询支持 activity_id
+- 配置增加 admin_api_key
+
+### 后续计划
+
+1. PostgreSQL + Alembic + Docker Compose
+2. 增加端到端演示脚本
+3. 接入企业微信智能机器人或自建应用回调
+4. 增加简单管理前端

@@ -136,3 +136,39 @@ class ReminderScheduleIn(BaseModel):
     start_at: datetime | None = None
     deadline_notice_minutes: int = 10
     start_notice_minutes: int = 120
+
+
+class AdminInboundMessageOut(BaseModel):
+    id: int
+    wecom_msg_id: str
+    group_id: str
+    group_name: str
+    sender_id: str
+    sender_name: str
+    msg_type: str
+    content: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminOverviewOut(BaseModel):
+    total_activities: int
+    active_activities: int
+    inbound_messages: int
+    participants: int
+    proposals: int
+    votes: int
+    outbox_pending: int
+    outbox_sent: int
+    outbox_failed: int
+    reminders_pending: int
+
+
+class AdminActivityDetailOut(BaseModel):
+    activity: DinnerActivityOut
+    participants: list[ActivityParticipantOut]
+    proposals: list[DinnerProposalOut]
+    votes: list[VoteOut]
+    outbox_messages: list[OutboxMessageOut]
+    reminders: list[ReminderOut]

@@ -35,12 +35,15 @@ def list_outbox_messages(
     db: Session,
     status: OutboxStatus | None = None,
     group_id: str | None = None,
+    activity_id: int | None = None,
 ) -> list[OutboxMessage]:
     statement = select(OutboxMessage)
     if status is not None:
         statement = statement.where(OutboxMessage.status == status.value)
     if group_id is not None:
         statement = statement.where(OutboxMessage.group_id == group_id)
+    if activity_id is not None:
+        statement = statement.where(OutboxMessage.activity_id == activity_id)
     statement = statement.order_by(OutboxMessage.id.desc())
     return list(db.scalars(statement).all())
 
