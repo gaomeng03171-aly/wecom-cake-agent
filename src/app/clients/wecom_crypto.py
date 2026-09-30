@@ -25,6 +25,10 @@ class WeComCrypto:
         if len(self._aes_key) != 32:
             raise WeComCryptoError("EncodingAESKey must decode to 32 bytes")
 
+    @property
+    def corp_id(self) -> str:
+        return self._corp_id
+
     def signature(self, timestamp: str, nonce: str, encrypted: str) -> str:
         values = sorted([self._token, timestamp, nonce, encrypted])
         return hashlib.sha1("".join(values).encode("utf-8")).hexdigest()

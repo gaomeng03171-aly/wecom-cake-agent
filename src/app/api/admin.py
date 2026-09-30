@@ -11,6 +11,7 @@ from app.schemas.activity import (
     AdminInboundMessageOut,
     AdminOverviewOut,
     DinnerActivityOut,
+    IntegrationStatusOut,
 )
 from app.services.admin import (
     get_activity_detail,
@@ -18,6 +19,7 @@ from app.services.admin import (
     list_activities,
     list_inbound_messages,
 )
+from app.services.integration_status import get_integration_status
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -92,3 +94,12 @@ def admin_messages(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get(
+    "/integration-status",
+    response_model=IntegrationStatusOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_integration_status() -> IntegrationStatusOut:
+    return get_integration_status(get_settings())

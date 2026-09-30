@@ -679,3 +679,41 @@ POST /wecom/messages
 2. 增加真实环境联调检查清单
 3. 增加生产部署和反向代理说明
 4. 增加本地回调调试工具
+
+## 0.17 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加联调状态接口
+   - GET /admin/integration-status
+   - 检查企微发送配置
+   - 检查企微回调配置
+   - 检查 Dify 配置
+   - 返回数据库类型
+   - 不返回任何密钥内容
+
+2. 增加回调调试脚本
+   - roundtrip：本地加解密验证
+   - verify：模拟企业微信 URL 验证
+   - post：模拟加密消息回调
+   - 支持 --base-url、--content、--group-id 等参数
+
+3. 增加联调检查清单
+   - 企业微信后台所需配置
+   - 本地回调验证步骤
+   - 常见错误排查
+   - 安全检查
+
+### 本次主要变化
+
+- 新增 services/integration_status.py
+- 扩展 api/admin.py
+- 新增 scripts/debug_wecom_callback.py
+- 新增 docs/wecom-integration-checklist.md
+
+### 后续计划
+
+1. 增加简单管理前端
+2. 增加生产部署和反向代理说明
+3. 增加真实环境联调执行记录
+4. 增加回调消息幂等和重放保护说明

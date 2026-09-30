@@ -48,6 +48,8 @@
 
 第十六阶段：企业微信自建应用消息发送客户端已实现，群聊和单聊均可通过应用 API 回复。
 
+第十七阶段：联调状态接口和企业微信回调调试工具已实现，并补充完整联调检查清单。
+
 ## 本地启动
 
 ```powershell
@@ -223,6 +225,26 @@ direct-{user_id}：调用 message/send
 ```
 
 当前回调解析器会把没有 `ChatId` 的消息标记为 `direct-{sender_id}`，用于单聊回复。
+
+## 联调工具
+
+查询当前配置是否满足企业微信和 Dify 联调要求：
+
+```text
+GET /admin/integration-status
+```
+
+接口不会返回密钥，只返回当前模式、缺失配置项和数据库类型。
+
+调试企业微信回调：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\debug_wecom_callback.py roundtrip
+.\.venv\Scripts\python.exe scripts\debug_wecom_callback.py verify
+.\.venv\Scripts\python.exe scripts\debug_wecom_callback.py post
+```
+
+完整步骤和常见错误见 [docs/wecom-integration-checklist.md](docs/wecom-integration-checklist.md)。
 
 ## 计划中的 MVP
 

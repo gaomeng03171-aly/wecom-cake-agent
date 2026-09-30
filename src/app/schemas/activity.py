@@ -172,3 +172,16 @@ class AdminActivityDetailOut(BaseModel):
     votes: list[VoteOut]
     outbox_messages: list[OutboxMessageOut]
     reminders: list[ReminderOut]
+
+
+class IntegrationStatusOut(BaseModel):
+    wecom_sender_mode: str
+    wecom_sender_ready: bool
+    missing_wecom_sender_config: list[str]
+    wecom_callback_ready: bool
+    missing_wecom_callback_config: list[str]
+    wecom_callback_url: str
+    dify_client_mode: str
+    dify_ready: bool
+    missing_dify_config: list[str]
+    database_dialect: str
