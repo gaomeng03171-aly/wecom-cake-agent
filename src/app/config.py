@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     wecom_agent_id: str = ""
     wecom_app_secret: str = ""
 
+    reminder_scheduler_enabled: bool = True
+    reminder_poll_seconds: int = 30
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

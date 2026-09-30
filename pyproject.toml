@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wecom-dinner-agent"
-version = "0.8.0"
+version = "0.9.0"
 description = "A WeCom group dinner organizer agent for learning agent project development."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "apscheduler>=3.10,<4",
     "fastapi>=0.115,<1",
     "uvicorn[standard]>=0.30,<1",
     "pydantic-settings>=2.5,<3",

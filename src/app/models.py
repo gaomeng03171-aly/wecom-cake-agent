@@ -182,3 +182,46 @@ class OutboxMessage(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+
+
+class ReminderStatus(StrEnum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ReminderType(StrEnum):
+    VOTING_DEADLINE = "voting_deadline"
+    ACTIVITY_START = "activity_start"
+    CUSTOM = "custom"
+
+
+class Reminder(Base):
+    __tablename__ = "reminders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    activity_id: Mapped[int] = mapped_column(
+        ForeignKey("dinner_activities.id"),
+        index=True,
+    )
+    reminder_type: Mapped[str] = mapped_column(String(32), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    scheduled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
+    status: Mapped[str] = mapped_column(
+        String(32),
+        default=ReminderStatus.PENDING.value,
+        index=True,
+    )
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )

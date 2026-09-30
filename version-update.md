@@ -310,6 +310,51 @@ POST /wecom/messages
 4. 增加管理查询或后台
 5. PostgreSQL + Alembic + Docker Compose
 
+## 0.9 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加提醒模型
+   - 新增 Reminder 数据表
+   - 支持 pending、sent、failed、cancelled 状态
+   - 记录提醒类型、计划时间、发送时间和错误
+
+2. 增加 APScheduler 调度器
+   - 开发环境按固定间隔扫描到期提醒
+   - 测试环境不启动后台线程
+   - 应用退出时停止调度器
+
+3. 提醒通过 Outbox 发送
+   - 到期提醒创建 Outbox 记录
+   - 复用发送、失败和重试机制
+   - 提醒发送结果回写 Reminder
+
+4. 增加默认提醒计划
+   - 投票截止前提醒
+   - 活动开始前提醒
+
+5. 增加提醒接口
+   - POST /activities/{activity_id}/reminders
+   - GET /activities/{activity_id}/reminders
+   - POST /activities/{activity_id}/schedule-reminders
+   - POST /reminders/dispatch-due
+   - POST /reminders/{reminder_id}/cancel
+
+### 本次主要变化
+
+- 新增 models.Reminder
+- 新增 services/reminders.py
+- 新增 scheduler.py
+- 新增 api/reminders.py
+- 配置增加 reminder_scheduler_enabled 和 reminder_poll_seconds
+
+### 后续计划
+
+1. 增加真实 Dify HTTP 客户端
+2. 增加真实企微发送客户端
+3. 增加管理查询或后台
+4. PostgreSQL + Alembic + Docker Compose
+
 ## 0.8 - 2026-09-30
 
 ### 当前完成内容

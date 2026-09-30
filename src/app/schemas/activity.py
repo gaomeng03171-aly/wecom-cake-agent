@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models import ActivityStatus, OutboxStatus
+from app.models import ActivityStatus, OutboxStatus, ReminderStatus, ReminderType
 
 
 class DinnerActivityOut(BaseModel):
@@ -109,3 +109,30 @@ class OutboxCreateIn(BaseModel):
     content: str
     activity_id: int | None = None
     dispatch: bool = True
+
+
+class ReminderOut(BaseModel):
+    id: int
+    activity_id: int
+    reminder_type: ReminderType
+    content: str
+    scheduled_at: datetime
+    status: ReminderStatus
+    last_error: str | None
+    created_at: datetime
+    sent_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReminderCreateIn(BaseModel):
+    reminder_type: ReminderType = ReminderType.CUSTOM
+    content: str
+    scheduled_at: datetime
+
+
+class ReminderScheduleIn(BaseModel):
+    deadline_at: datetime | None = None
+    start_at: datetime | None = None
+    deadline_notice_minutes: int = 10
+    start_notice_minutes: int = 120

@@ -32,6 +32,8 @@
 
 第八阶段：Outbox 发送链路已实现，支持 pending、sent、failed 和重试。
 
+第九阶段：活动提醒已实现，支持 APScheduler 调度、投票截止提醒和活动开始提醒。
+
 ## 本地启动
 
 ```powershell

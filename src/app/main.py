@@ -6,18 +6,22 @@ from fastapi import FastAPI
 
 from app import __version__
 from app.api.activities import router as activities_router
+from app.api.outbox import router as outbox_router
 from app.api.participants import router as participants_router
 from app.api.proposals import router as proposals_router
-from app.api.outbox import router as outbox_router
+from app.api.reminders import router as reminders_router
 from app.api.wecom import router as wecom_router
 from app.config import get_settings
 from app.db import init_db
+from app.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    start_scheduler()
     yield
+    stop_scheduler()
 
 
 def create_app() -> FastAPI:
@@ -31,6 +35,7 @@ def create_app() -> FastAPI:
     application.include_router(participants_router)
     application.include_router(proposals_router)
     application.include_router(outbox_router)
+    application.include_router(reminders_router)
     application.include_router(wecom_router)
 
     @application.get("/health", tags=["system"])
