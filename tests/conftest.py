@@ -2,6 +2,9 @@ import os
 
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["WECOM_CORP_ID"] = "test-corp"
+os.environ["WECOM_CALLBACK_TOKEN"] = "test-token"
+os.environ["WECOM_ENCODING_AES_KEY"] = "A" * 43
 
 import pytest
 from fastapi.testclient import TestClient

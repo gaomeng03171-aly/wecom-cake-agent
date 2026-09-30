@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     wecom_corp_id: str = ""
     wecom_agent_id: str = ""
     wecom_app_secret: str = ""
+    wecom_callback_token: str = ""
+    wecom_encoding_aes_key: str = ""
 
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30

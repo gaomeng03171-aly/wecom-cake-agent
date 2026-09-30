@@ -44,6 +44,8 @@
 
 第十四阶段：端到端演示脚本已实现，并修复了投票方案序号在历史数据下的映射问题。
 
+第十五阶段：企业微信官方回调入口已实现，支持签名校验、AES 解密、XML 解析和消息处理。
+
 ## 本地启动
 
 ```powershell
@@ -178,6 +180,26 @@ docker compose up --build
 创建并发送提醒
 查询管理详情
 ```
+
+## 企业微信回调
+
+企业微信后台的回调地址配置为：
+
+```text
+https://your-domain.example/wecom/callback
+```
+
+本地 `.env` 需要配置：
+
+```text
+WECOM_CORP_ID=your-corp-id
+WECOM_CALLBACK_TOKEN=your-callback-token
+WECOM_ENCODING_AES_KEY=your-43-character-aes-key
+```
+
+当前回调实现会校验签名、解密消息、解析 text 消息，并复用现有业务处理与 Outbox 链路。
+
+真实部署时回调地址必须是企业微信可访问的 HTTPS 地址。当前真实发送器仍是群机器人 Webhook；如果使用自建应用回调，后续还需要实现对应的应用消息发送客户端。
 
 ## 计划中的 MVP
 

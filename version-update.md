@@ -591,3 +591,50 @@ POST /wecom/messages
 2. 增加简单管理前端
 3. 增加部署配置示例和运行文档
 4. 增加真实环境联调检查清单
+
+## 0.15 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加企业微信回调加密模块
+   - SHA1 签名校验
+   - AES-256-CBC 解密
+   - AES-256-CBC 加密
+   - EncodingAESKey 和 corp_id 校验
+
+2. 增加企业微信回调接口
+   - GET /wecom/callback 验证 URL
+   - POST /wecom/callback 接收消息
+   - 解析 text 消息 XML
+   - 复用现有消息处理和 Outbox 链路
+
+3. 增加回调配置
+   - WECOM_CORP_ID
+   - WECOM_CALLBACK_TOKEN
+   - WECOM_ENCODING_AES_KEY
+
+4. 增加回调测试
+   - 加解密往返测试
+   - URL 验证测试
+   - 加密消息创建活动测试
+
+### 本次主要变化
+
+- 新增 clients/wecom_crypto.py
+- 新增 services/wecom_callback.py
+- 新增 api/wecom_callback.py
+- 新增 tests/test_wecom_callback.py
+- 依赖增加 cryptography
+
+### 当前边界
+
+- 回调接收已实现，群机器人 Webhook 发送已实现。
+- 自建应用回调后的应用消息发送仍需后续实现。
+- 回调地址需要公网可访问的 HTTPS 地址。
+
+### 后续计划
+
+1. 增加自建应用消息发送客户端
+2. 增加简单管理前端
+3. 增加真实环境联调检查清单
+4. 增加生产部署和反向代理说明

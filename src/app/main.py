@@ -12,6 +12,7 @@ from app.api.participants import router as participants_router
 from app.api.proposals import router as proposals_router
 from app.api.reminders import router as reminders_router
 from app.api.wecom import router as wecom_router
+from app.api.wecom_callback import router as wecom_callback_router
 from app.config import get_settings
 from app.db import init_db
 from app.scheduler import start_scheduler, stop_scheduler
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     application.include_router(outbox_router)
     application.include_router(reminders_router)
     application.include_router(wecom_router)
+    application.include_router(wecom_callback_router)
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, Any]:
