@@ -50,6 +50,8 @@
 
 第十七阶段：联调状态接口和企业微信回调调试工具已实现，并补充完整联调检查清单。
 
+第十八阶段：React + TypeScript + Vite 管理前端已实现，支持总览、活动详情、消息和联调状态查看。
+
 ## 本地启动
 
 ```powershell
@@ -245,6 +247,24 @@ GET /admin/integration-status
 ```
 
 完整步骤和常见错误见 [docs/wecom-integration-checklist.md](docs/wecom-integration-checklist.md)。
+
+## 管理前端
+
+先启动后端 `127.0.0.1:8000`，再运行：
+
+```powershell
+cd apps/admin-web
+npm install
+npm run dev
+```
+
+访问：
+
+```text
+http://127.0.0.1:5173
+```
+
+前端开发服务器会把 `/api` 代理到 FastAPI。若配置了 `ADMIN_API_KEY`，可在左侧输入管理密钥，密钥只保存在浏览器 `sessionStorage`。
 
 ## 计划中的 MVP
 
