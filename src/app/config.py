@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     dify_client_mode: str = "mock"
     dify_api_base: str = ""
     dify_api_key: str = ""
+    dify_user: str = "wecom-dinner-agent"
+    dify_timeout_seconds: float = 30.0
 
     wecom_sender_mode: str = "mock"
     wecom_corp_id: str = ""

@@ -310,6 +310,48 @@ POST /wecom/messages
 4. 增加管理查询或后台
 5. PostgreSQL + Alembic + Docker Compose
 
+## 0.8 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加 Outbox 模型
+   - 新增 OutboxMessage 数据表
+   - 支持 pending、sent、failed 状态
+   - 记录重试次数、错误信息、发送时间和 provider 消息 ID
+
+2. 增加企微发送客户端
+   - 定义 WeComSender 抽象接口
+   - 实现 MockWeComSender
+   - 根据 wecom_sender_mode 选择发送客户端
+
+3. 接入机器人回复
+   - 消息处理成功后自动创建 Outbox 记录
+   - 重复消息不会重复创建回复
+   - 业务错误会回复固定提示
+
+4. 增加 Outbox 管理接口
+   - POST /outbox
+   - GET /outbox
+   - POST /outbox/{message_id}/dispatch
+   - POST /outbox/dispatch-pending
+   - POST /outbox/{message_id}/retry
+
+### 本次主要变化
+
+- 新增 models.OutboxMessage
+- 新增 clients/wecom.py
+- 新增 services/outbox.py
+- 新增 api/outbox.py
+- 消息响应增加 outbox 字段
+
+### 后续计划
+
+1. 增加活动提醒
+2. 增加真实企微发送客户端
+3. 增加真实 Dify HTTP 客户端
+4. 增加管理查询或后台
+5. PostgreSQL + Alembic + Docker Compose
+
 ## 0.9 - 2026-09-30
 
 ### 当前完成内容
@@ -355,44 +397,38 @@ POST /wecom/messages
 3. 增加管理查询或后台
 4. PostgreSQL + Alembic + Docker Compose
 
-## 0.8 - 2026-09-30
+## 0.10 - 2026-09-30
 
 ### 当前完成内容
 
-1. 增加 Outbox 模型
-   - 新增 OutboxMessage 数据表
-   - 支持 pending、sent、failed 状态
-   - 记录重试次数、错误信息、发送时间和 provider 消息 ID
+1. 增加真实 Dify 客户端
+   - 实现 HttpDifyClient
+   - 调用 Dify Workflow blocking API
+   - 解析 data.outputs
 
-2. 增加企微发送客户端
-   - 定义 WeComSender 抽象接口
-   - 实现 MockWeComSender
-   - 根据 wecom_sender_mode 选择发送客户端
+2. 增加客户端模式切换
+   - mock 模式继续使用 MockDifyClient
+   - real 或 http 模式使用 HttpDifyClient
+   - 缺少 API 地址或 Key 时给出明确错误
 
-3. 接入机器人回复
-   - 消息处理成功后自动创建 Outbox 记录
-   - 重复消息不会重复创建回复
-   - 业务错误会回复固定提示
+3. 增加配置项
+   - DIFY_USER
+   - DIFY_TIMEOUT_SECONDS
 
-4. 增加 Outbox 管理接口
-   - POST /outbox
-   - GET /outbox
-   - POST /outbox/{message_id}/dispatch
-   - POST /outbox/dispatch-pending
-   - POST /outbox/{message_id}/retry
+4. 增加 HTTP 客户端测试
+   - 成功返回结构化 outputs
+   - HTTP 失败时返回错误结果
 
 ### 本次主要变化
 
-- 新增 models.OutboxMessage
-- 新增 clients/wecom.py
-- 新增 services/outbox.py
-- 新增 api/outbox.py
-- 消息响应增加 outbox 字段
+- 扩展 clients/dify.py
+- 扩展 config.py 和 .env.example
+- 新增 tests/test_dify_http.py
+- README 增加真实 Dify 接入说明
 
 ### 后续计划
 
-1. 增加活动提醒
-2. 增加真实企微发送客户端
-3. 增加真实 Dify HTTP 客户端
-4. 增加管理查询或后台
-5. PostgreSQL + Alembic + Docker Compose
+1. 增加真实企微发送客户端
+2. 增加管理查询或后台
+3. PostgreSQL + Alembic + Docker Compose
+4. 增加端到端演示脚本

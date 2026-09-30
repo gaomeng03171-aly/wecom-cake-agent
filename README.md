@@ -34,6 +34,8 @@
 
 第九阶段：活动提醒已实现，支持 APScheduler 调度、投票截止提醒和活动开始提醒。
 
+第十阶段：真实 Dify Workflow HTTP 客户端已实现，可通过环境变量切换 mock 和真实模式。
+
 ## 本地启动
 
 ```powershell
@@ -52,6 +54,34 @@ Invoke-RestMethod -Method Post `
   -ContentType "application/json" `
   -Body '{"msg_id":"wecom-msg-001","group_id":"group-001","group_name":"周末聚餐群","sender_id":"user-001","sender_name":"张三","msg_type":"text","content":"周六晚上一起吃饭吗？"}'
 ```
+
+## 接入真实 Dify
+
+在 Dify 中创建一个 Workflow 应用，并将 `.env` 配置为：
+
+```text
+DIFY_CLIENT_MODE=real
+DIFY_API_BASE=https://api.dify.ai/v1
+DIFY_API_KEY=your-dify-app-api-key
+```
+
+Workflow 的最终输出需要包含以下字段，后端会用 Pydantic 校验：
+
+```text
+intent
+activity_title
+suggested_time
+deadline
+available_time
+cuisine_preference
+budget_max
+notes
+proposal_choice
+missing_fields
+reply
+```
+
+只需要 Dify 应用 API Key 和应用地址，不需要在项目里配置 Dify 登录账号或密码。
 
 运行测试：
 

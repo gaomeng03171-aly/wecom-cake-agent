@@ -1,6 +1,8 @@
-from abc import ABC, abstractmethod
 import re
+from abc import ABC, abstractmethod
 from typing import Any
+
+import httpx
 
 from app.config import get_settings
 from app.schemas.dify import DifyWorkflowResult
@@ -121,9 +123,88 @@ class MockDifyClient(DifyClient):
         return None
 
 
+class HttpDifyClient(DifyClient):
+    def __init__(
+        self,
+        api_base: str,
+        api_key: str,
+        user: str,
+        timeout_seconds: float = 30.0,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
+        self._api_base = api_base.rstrip("/")
+        self._api_key = api_key
+        self._user = user
+        self._timeout_seconds = timeout_seconds
+        self._transport = transport
+
+    def run(self, inputs: dict[str, Any]) -> DifyWorkflowResult:
+        try:
+            with httpx.Client(
+                base_url=self._api_base,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                timeout=self._timeout_seconds,
+                transport=self._transport,
+            ) as client:
+                response = client.post(
+                    "workflows/run",
+                    json={
+                        "inputs": inputs,
+                        "response_mode": "blocking",
+                        "user": self._user,
+                    },
+                )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            return DifyWorkflowResult(
+                success=False,
+                error=f"Dify request failed: {exc}",
+            )
+
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            return DifyWorkflowResult(
+                success=False,
+                error=f"Dify returned invalid JSON: {exc}",
+            )
+
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            return DifyWorkflowResult(
+                success=False,
+                error="Dify response is missing data",
+            )
+
+        status = data.get("status")
+        if status not in (None, "succeeded"):
+            return DifyWorkflowResult(
+                success=False,
+                error=str(data.get("error") or f"Dify workflow status: {status}"),
+            )
+
+        outputs = data.get("outputs")
+        if not isinstance(outputs, dict):
+            return DifyWorkflowResult(
+                success=False,
+                error="Dify response is missing outputs",
+            )
+
+        return DifyWorkflowResult(success=True, outputs=outputs)
+
+
 def get_dify_client() -> DifyClient:
     settings = get_settings()
     if settings.dify_client_mode == "mock":
         return MockDifyClient()
+    if settings.dify_client_mode in {"real", "http"}:
+        if not settings.dify_api_base or not settings.dify_api_key:
+            raise RuntimeError("DIFY_API_BASE and DIFY_API_KEY are required")
+        return HttpDifyClient(
+            api_base=settings.dify_api_base,
+            api_key=settings.dify_api_key,
+            user=settings.dify_user,
+            timeout_seconds=settings.dify_timeout_seconds,
+        )
 
-    raise RuntimeError("Real Dify client is not implemented yet.")
+    raise RuntimeError(f"Unsupported Dify client mode: {settings.dify_client_mode}")
