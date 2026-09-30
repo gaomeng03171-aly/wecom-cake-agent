@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     dify_timeout_seconds: float = 30.0
 
     wecom_sender_mode: str = "mock"
+    wecom_webhook_url: str = ""
+    wecom_sender_timeout_seconds: float = 10.0
     wecom_corp_id: str = ""
     wecom_agent_id: str = ""
     wecom_app_secret: str = ""

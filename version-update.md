@@ -432,3 +432,39 @@ POST /wecom/messages
 2. 增加管理查询或后台
 3. PostgreSQL + Alembic + Docker Compose
 4. 增加端到端演示脚本
+
+## 0.11 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加企业微信 Webhook 发送客户端
+   - 实现 WebhookWeComSender
+   - 发送 text 类型群消息
+   - 解析企业微信 errcode 和 errmsg
+
+2. 增加发送模式切换
+   - mock 模式使用 MockWeComSender
+   - webhook 或 real 模式使用 WebhookWeComSender
+   - 缺少 Webhook URL 时给出明确错误
+
+3. 增加配置项
+   - WECOM_WEBHOOK_URL
+   - WECOM_SENDER_TIMEOUT_SECONDS
+
+4. 增加 Webhook 测试
+   - 校验 POST 请求体和地址
+   - 校验企业微信错误码处理
+
+### 本次主要变化
+
+- 扩展 clients/wecom.py
+- 扩展 config.py 和 .env.example
+- 新增 tests/test_wecom_webhook.py
+- README 增加企业微信发送接入说明
+
+### 后续计划
+
+1. 增加管理查询或后台
+2. PostgreSQL + Alembic + Docker Compose
+3. 增加端到端演示脚本
+4. 接入企业微信智能机器人或自建应用回调
