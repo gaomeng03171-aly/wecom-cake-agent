@@ -638,3 +638,44 @@ POST /wecom/messages
 2. 增加简单管理前端
 3. 增加真实环境联调检查清单
 4. 增加生产部署和反向代理说明
+
+## 0.16 - 2026-09-30
+
+### 当前完成内容
+
+1. 增加企业微信自建应用发送客户端
+   - 获取并缓存 access_token
+   - appchat/send 发送群聊消息
+   - message/send 发送单聊消息
+   - 解析 errcode、errmsg 和 msgid
+
+2. 增加发送模式
+   - mock
+   - webhook
+   - app 或 real
+
+3. 增加应用发送配置
+   - WECOM_API_BASE
+   - WECOM_CORP_ID
+   - WECOM_AGENT_ID
+   - WECOM_APP_SECRET
+   - WECOM_SENDER_TIMEOUT_SECONDS
+
+4. 增加应用发送测试
+   - 群聊 appchat/send
+   - 单聊 message/send
+   - access_token 错误处理
+
+### 本次主要变化
+
+- 扩展 clients/wecom.py
+- 扩展 config.py、.env.example 和 docker-compose.yml
+- 新增 tests/test_wecom_app.py
+- README 增加自建应用发送说明
+
+### 后续计划
+
+1. 增加简单管理前端
+2. 增加真实环境联调检查清单
+3. 增加生产部署和反向代理说明
+4. 增加本地回调调试工具

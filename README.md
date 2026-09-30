@@ -46,6 +46,8 @@
 
 第十五阶段：企业微信官方回调入口已实现，支持签名校验、AES 解密、XML 解析和消息处理。
 
+第十六阶段：企业微信自建应用消息发送客户端已实现，群聊和单聊均可通过应用 API 回复。
+
 ## 本地启动
 
 ```powershell
@@ -199,7 +201,28 @@ WECOM_ENCODING_AES_KEY=your-43-character-aes-key
 
 当前回调实现会校验签名、解密消息、解析 text 消息，并复用现有业务处理与 Outbox 链路。
 
-真实部署时回调地址必须是企业微信可访问的 HTTPS 地址。当前真实发送器仍是群机器人 Webhook；如果使用自建应用回调，后续还需要实现对应的应用消息发送客户端。
+真实部署时回调地址必须是企业微信可访问的 HTTPS 地址。当前已同时实现群机器人 Webhook 和自建应用 API 发送，可通过 `WECOM_SENDER_MODE` 切换。
+
+### 自建应用发送
+
+如果使用自建应用回调，可以将发送模式切换为应用 API：
+
+```text
+WECOM_SENDER_MODE=app
+WECOM_CORP_ID=your-corp-id
+WECOM_AGENT_ID=your-agent-id
+WECOM_APP_SECRET=your-app-secret
+WECOM_API_BASE=https://qyapi.weixin.qq.com
+```
+
+发送器会自动获取并缓存 `access_token`：
+
+```text
+普通 chat_id：调用 appchat/send
+direct-{user_id}：调用 message/send
+```
+
+当前回调解析器会把没有 `ChatId` 的消息标记为 `direct-{sender_id}`，用于单聊回复。
 
 ## 计划中的 MVP
 

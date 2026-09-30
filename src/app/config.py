@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     wecom_sender_mode: str = "mock"
     wecom_webhook_url: str = ""
+    wecom_api_base: str = "https://qyapi.weixin.qq.com"
     wecom_sender_timeout_seconds: float = 10.0
     wecom_corp_id: str = ""
     wecom_agent_id: str = ""
