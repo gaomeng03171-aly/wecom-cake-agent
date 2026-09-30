@@ -42,6 +42,8 @@
 
 第十三阶段：PostgreSQL、Alembic 和 Docker Compose 已接入，支持正式数据库迁移与容器部署。
 
+第十四阶段：端到端演示脚本已实现，并修复了投票方案序号在历史数据下的映射问题。
+
 ## 本地启动
 
 ```powershell
@@ -154,6 +156,28 @@ docker compose up --build
 ```
 
 可在项目根目录的 `.env` 中覆盖 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 以及外部服务配置。
+
+## 端到端演示
+
+使用 mock Dify 和 mock 企微发送器，启动服务后运行：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\demo_dinner_flow.py
+```
+
+脚本会依次执行：
+
+```text
+健康检查
+创建聚餐活动
+收集参与者偏好
+生成候选方案
+开始投票
+成员投票
+确认最终方案
+创建并发送提醒
+查询管理详情
+```
 
 ## 计划中的 MVP
 

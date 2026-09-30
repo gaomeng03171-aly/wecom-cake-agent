@@ -16,6 +16,7 @@ from app.services.proposals import (
     ProposalServiceError,
     cast_vote,
     generate_proposals,
+    list_proposals,
 )
 from app.services.outbox import dispatch_message, enqueue_reply
 
@@ -82,12 +83,16 @@ def process_inbound_message(
             error = "no active activity or missing proposal choice"
         else:
             try:
+                activity_proposals = list_proposals(db, activity.id)
+                choice_index = analysis.proposal_choice - 1
+                if choice_index < 0 or choice_index >= len(activity_proposals):
+                    raise ProposalServiceError("proposal choice is out of range")
                 vote = cast_vote(
                     db,
                     activity.id,
                     payload.sender_id,
                     payload.sender_name,
-                    analysis.proposal_choice,
+                    activity_proposals[choice_index].id,
                 )
             except ProposalServiceError as exc:
                 error = str(exc)

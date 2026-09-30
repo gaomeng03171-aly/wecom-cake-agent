@@ -127,3 +127,56 @@ def test_generate_proposals_requires_participants(client) -> None:
 
     assert response.status_code == 200
     assert response.json()["dify_error"] == "no active participants"
+
+
+def test_vote_choice_maps_to_current_activity_proposal(client) -> None:
+    first_group = "proposal-group-003"
+    first_activity_id = _create_activity(client, "wecom-proposal-005", first_group)
+    _add_preference(client, first_group)
+    client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-proposal-006",
+            "group_id": first_group,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "生成方案",
+        },
+    )
+
+    second_group = "proposal-group-004"
+    second_activity_id = _create_activity(client, "wecom-proposal-007", second_group)
+    _add_preference(client, second_group)
+    generate_response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-proposal-008",
+            "group_id": second_group,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "生成方案",
+        },
+    )
+    second_proposals = generate_response.json()["proposals"]
+    client.post(f"/activities/{second_activity_id}/start-voting")
+
+    vote_response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-vote-003",
+            "group_id": second_group,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "我选1",
+        },
+    )
+
+    assert first_activity_id != second_activity_id
+    assert vote_response.status_code == 200
+    assert vote_response.json()["vote"]["proposal_id"] == second_proposals[0]["id"]
