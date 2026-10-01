@@ -44,6 +44,10 @@ def test_due_reminder_is_sent_through_outbox(client) -> None:
     assert reminders[0]["status"] == "sent"
     assert reminders[0]["sent_at"] is not None
 
+    second_dispatch = client.post("/reminders/dispatch-due")
+    assert second_dispatch.status_code == 200
+    assert second_dispatch.json() == []
+
     outbox_response = client.get(
         "/outbox",
         params={"group_id": "reminder-group-001"},

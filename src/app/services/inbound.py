@@ -9,6 +9,7 @@ from app.schemas.wecom import WeComMessageIn, WeComMessageReceiveResponse
 def receive_message(
     db: Session,
     payload: WeComMessageIn,
+    commit: bool = True,
 ) -> WeComMessageReceiveResponse:
     existing = db.scalar(
         select(InboundMessage).where(InboundMessage.wecom_msg_id == payload.msg_id)
@@ -32,7 +33,10 @@ def receive_message(
     )
     db.add(message)
     try:
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
     except IntegrityError:
         db.rollback()
         existing = db.scalar(
@@ -48,7 +52,8 @@ def receive_message(
             message_id=existing.id,
         )
 
-    db.refresh(message)
+    if commit:
+        db.refresh(message)
     return WeComMessageReceiveResponse(
         accepted=True,
         duplicate=False,

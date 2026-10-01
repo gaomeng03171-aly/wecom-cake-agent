@@ -64,6 +64,7 @@ def create_activity_from_message(
     db: Session,
     message: WeComMessageIn,
     analysis: DinnerDifyOutput,
+    commit: bool = True,
 ) -> DinnerActivity:
     existing = find_active_activity(db, message.group_id)
     if existing is not None:
@@ -88,8 +89,11 @@ def create_activity_from_message(
             user_name=message.sender_name,
         )
     )
-    db.commit()
-    db.refresh(activity)
+    if commit:
+        db.commit()
+        db.refresh(activity)
+    else:
+        db.flush()
     return activity
 
 

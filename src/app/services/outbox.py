@@ -14,6 +14,7 @@ def enqueue_reply(
     group_id: str,
     content: str,
     activity_id: int | None = None,
+    commit: bool = True,
 ) -> OutboxMessage:
     message = OutboxMessage(
         activity_id=activity_id,
@@ -22,8 +23,11 @@ def enqueue_reply(
         status=OutboxStatus.PENDING.value,
     )
     db.add(message)
-    db.commit()
-    db.refresh(message)
+    if commit:
+        db.commit()
+        db.refresh(message)
+    else:
+        db.flush()
     return message
 
 

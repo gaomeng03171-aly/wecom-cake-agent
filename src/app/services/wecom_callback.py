@@ -8,6 +8,25 @@ class WeComCallbackMessageError(ValueError):
     pass
 
 
+def validate_callback_timestamp(
+    timestamp: str,
+    max_age_seconds: int,
+    now_timestamp: int | None = None,
+) -> None:
+    try:
+        callback_timestamp = int(timestamp)
+    except ValueError as exc:
+        raise WeComCallbackMessageError("invalid callback timestamp") from exc
+
+    current_timestamp = (
+        now_timestamp
+        if now_timestamp is not None
+        else int(datetime.now(timezone.utc).timestamp())
+    )
+    if abs(current_timestamp - callback_timestamp) > max_age_seconds:
+        raise WeComCallbackMessageError("callback timestamp is outside the allowed window")
+
+
 def parse_callback_message(xml_text: str) -> WeComMessageIn:
     try:
         root = ElementTree.fromstring(xml_text)

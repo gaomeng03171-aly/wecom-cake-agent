@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -137,13 +137,33 @@ def dispatch_due_reminders(
     )
 
     for reminder in reminders:
-        outbox = enqueue_reply(
-            db,
-            group_id=_activity_group_id(db, reminder.activity_id),
-            content=reminder.content,
-            activity_id=reminder.activity_id,
+        claim = db.execute(
+            update(Reminder)
+            .where(
+                Reminder.id == reminder.id,
+                Reminder.status == ReminderStatus.PENDING.value,
+            )
+            .values(status=ReminderStatus.PROCESSING.value)
         )
-        outbox = dispatch_message(db, outbox.id)
+        db.commit()
+        if claim.rowcount != 1:
+            continue
+        db.refresh(reminder)
+
+        try:
+            outbox = enqueue_reply(
+                db,
+                group_id=_activity_group_id(db, reminder.activity_id),
+                content=reminder.content,
+                activity_id=reminder.activity_id,
+            )
+            outbox = dispatch_message(db, outbox.id)
+        except Exception as exc:
+            reminder.status = ReminderStatus.FAILED.value
+            reminder.last_error = str(exc)
+            db.commit()
+            continue
+
         if outbox.status == "sent":
             reminder.status = ReminderStatus.SENT.value
             reminder.sent_at = utc_now()

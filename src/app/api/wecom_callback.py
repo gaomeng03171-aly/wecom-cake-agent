@@ -5,11 +5,13 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app.clients.wecom_crypto import WeComCryptoError, get_wecom_crypto
+from app.config import get_settings
 from app.db import get_db
 from app.services.processing import process_inbound_message
 from app.services.wecom_callback import (
     WeComCallbackMessageError,
     parse_callback_message,
+    validate_callback_timestamp,
 )
 
 router = APIRouter(prefix="/wecom", tags=["wecom"])
@@ -23,6 +25,10 @@ def verify_wecom_callback(
     echostr: str = Query(...),
 ) -> str:
     try:
+        validate_callback_timestamp(
+            timestamp,
+            get_settings().wecom_callback_max_age_seconds,
+        )
         crypto = get_wecom_crypto()
         if not crypto.verify_signature(
             msg_signature,
@@ -33,6 +39,8 @@ def verify_wecom_callback(
             raise HTTPException(status_code=403, detail="invalid callback signature")
         return crypto.decrypt(echostr)
     except WeComCryptoError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except WeComCallbackMessageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -54,6 +62,10 @@ async def receive_wecom_callback(
         raise HTTPException(status_code=400, detail="missing Encrypt field")
 
     try:
+        validate_callback_timestamp(
+            timestamp,
+            get_settings().wecom_callback_max_age_seconds,
+        )
         crypto = get_wecom_crypto()
         if not crypto.verify_signature(
             msg_signature,

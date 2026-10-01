@@ -52,6 +52,7 @@ def _active_participants(
 def generate_proposals(
     db: Session,
     activity_id: int,
+    commit: bool = True,
 ) -> tuple[DinnerActivity, list[DinnerProposal]]:
     activity = get_activity_or_raise(db, activity_id)
     existing = list_proposals(db, activity_id)
@@ -107,10 +108,13 @@ def generate_proposals(
     if activity.status == ActivityStatus.COLLECTING.value:
         transition_activity_status(activity, ActivityStatus.PROPOSING)
 
-    db.commit()
-    for proposal in proposals:
-        db.refresh(proposal)
-    db.refresh(activity)
+    if commit:
+        db.commit()
+        for proposal in proposals:
+            db.refresh(proposal)
+        db.refresh(activity)
+    else:
+        db.flush()
     return activity, proposals
 
 
@@ -133,6 +137,7 @@ def cast_vote(
     user_id: str,
     user_name: str,
     proposal_id: int,
+    commit: bool = True,
 ) -> Vote:
     activity = get_activity_or_raise(db, activity_id)
     if activity.status != ActivityStatus.VOTING.value:
@@ -164,8 +169,11 @@ def cast_vote(
         existing_vote.proposal_id = proposal_id
         existing_vote.user_name = user_name or existing_vote.user_name
 
-    db.commit()
-    db.refresh(existing_vote)
+    if commit:
+        db.commit()
+        db.refresh(existing_vote)
+    else:
+        db.flush()
     return existing_vote
 
 

@@ -52,6 +52,8 @@
 
 第十八阶段：React + TypeScript + Vite 管理前端已实现，支持总览、活动详情、消息和联调状态查看。
 
+第十九阶段：事务 Outbox、回调时间窗口和提醒防重复派发已实现。
+
 ## 本地启动
 
 ```powershell
@@ -201,9 +203,12 @@ https://your-domain.example/wecom/callback
 WECOM_CORP_ID=your-corp-id
 WECOM_CALLBACK_TOKEN=your-callback-token
 WECOM_ENCODING_AES_KEY=your-43-character-aes-key
+WECOM_CALLBACK_MAX_AGE_SECONDS=300
 ```
 
 当前回调实现会校验签名、解密消息、解析 text 消息，并复用现有业务处理与 Outbox 链路。
+
+回调请求超过允许时间窗口时会被拒绝，用来降低重放风险；消息本身的幂等仍由 `wecom_msg_id` 保证。
 
 真实部署时回调地址必须是企业微信可访问的 HTTPS 地址。当前已同时实现群机器人 Webhook 和自建应用 API 发送，可通过 `WECOM_SENDER_MODE` 切换。
 

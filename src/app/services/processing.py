@@ -25,7 +25,7 @@ def process_inbound_message(
     db: Session,
     payload: WeComMessageIn,
 ) -> WeComMessageReceiveResponse:
-    stored = receive_message(db, payload)
+    stored = receive_message(db, payload, commit=False)
     if stored.duplicate:
         return stored
 
@@ -36,7 +36,10 @@ def process_inbound_message(
             db,
             payload.group_id,
             "我暂时无法理解这条消息，请稍后再试。",
+            commit=False,
         )
+        db.commit()
+        db.refresh(outbox)
         outbox = dispatch_message(db, outbox.id)
         return stored.model_copy(
             update={
@@ -52,7 +55,12 @@ def process_inbound_message(
     error = None
 
     if analysis.intent == "create_dinner":
-        activity = create_activity_from_message(db, payload, analysis)
+        activity = create_activity_from_message(
+            db,
+            payload,
+            analysis,
+            commit=False,
+        )
     elif analysis.intent == "provide_preference":
         activity = find_active_activity(db, payload.group_id)
         if activity is not None:
@@ -62,6 +70,7 @@ def process_inbound_message(
                 payload.sender_id,
                 payload.sender_name,
                 analysis,
+                commit=False,
             )
         else:
             error = "no active activity"
@@ -71,7 +80,11 @@ def process_inbound_message(
             error = "no active activity"
         else:
             try:
-                activity, generated = generate_proposals(db, activity.id)
+                activity, generated = generate_proposals(
+                    db,
+                    activity.id,
+                    commit=False,
+                )
                 proposals = [
                     DinnerProposalOut.model_validate(item) for item in generated
                 ]
@@ -93,6 +106,7 @@ def process_inbound_message(
                     payload.sender_id,
                     payload.sender_name,
                     activity_proposals[choice_index].id,
+                    commit=False,
                 )
             except ProposalServiceError as exc:
                 error = str(exc)
@@ -103,7 +117,10 @@ def process_inbound_message(
         payload.group_id,
         reply,
         activity_id=activity.id if activity else None,
+        commit=False,
     )
+    db.commit()
+    db.refresh(outbox)
     outbox = dispatch_message(db, outbox.id)
 
     return stored.model_copy(

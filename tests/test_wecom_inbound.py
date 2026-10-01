@@ -27,6 +27,7 @@ def test_wecom_message_is_stored_and_deduplicated(client) -> None:
     assert second_payload["duplicate"] is True
     assert second_payload["message_id"] == 1
     assert second_payload["analysis"] is None
+    assert second_payload["outbox"] is None
     assert second_payload["activity"] is None
 
 

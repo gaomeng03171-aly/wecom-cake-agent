@@ -186,6 +186,7 @@ class OutboxMessage(Base):
 
 class ReminderStatus(StrEnum):
     PENDING = "pending"
+    PROCESSING = "processing"
     SENT = "sent"
     FAILED = "failed"
     CANCELLED = "cancelled"

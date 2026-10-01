@@ -49,6 +49,26 @@ def test_wecom_callback_verification_returns_plaintext(client) -> None:
     assert response.text == plaintext
 
 
+def test_wecom_callback_rejects_expired_timestamp(client) -> None:
+    encrypted = _crypto().encrypt("expired")
+    timestamp = str(int(time.time()) - 3600)
+    nonce = "expired-nonce"
+    signature = _crypto().signature(timestamp, nonce, encrypted)
+
+    response = client.get(
+        "/wecom/callback",
+        params={
+            "msg_signature": signature,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "echostr": encrypted,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "timestamp" in response.text
+
+
 def test_wecom_callback_message_creates_activity(client) -> None:
     timestamp = str(int(time.time()))
     nonce = "callback-nonce"

@@ -8,6 +8,7 @@ def test_health_returns_ok() -> None:
         response = client.get("/health")
 
     assert response.status_code == 200
+    assert response.headers["X-Request-ID"]
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["app"] == "wecom-dinner-agent"

@@ -43,6 +43,7 @@ def join_activity(
     db: Session,
     activity_id: int,
     payload: JoinActivityIn,
+    commit: bool = True,
 ) -> ActivityParticipant:
     get_activity_or_raise(db, activity_id)
     participant = get_participant(db, activity_id, payload.user_id)
@@ -71,8 +72,11 @@ def join_activity(
             participant.notes = payload.notes
         participant.left_at = None
 
-    db.commit()
-    db.refresh(participant)
+    if commit:
+        db.commit()
+        db.refresh(participant)
+    else:
+        db.flush()
     return participant
 
 
@@ -137,6 +141,7 @@ def apply_preferences_from_message(
     user_id: str,
     user_name: str,
     analysis,
+    commit: bool = True,
 ) -> ActivityParticipant:
     payload = JoinActivityIn(
         user_id=user_id,
@@ -146,4 +151,4 @@ def apply_preferences_from_message(
         budget_max=analysis.budget_max,
         notes=analysis.notes,
     )
-    return join_activity(db, activity_id, payload)
+    return join_activity(db, activity_id, payload, commit=commit)

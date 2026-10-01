@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from app import __version__
 from app.api.activities import router as activities_router
@@ -43,6 +44,13 @@ def create_app() -> FastAPI:
     application.include_router(reminders_router)
     application.include_router(wecom_router)
     application.include_router(wecom_callback_router)
+
+    @application.middleware("http")
+    async def add_request_id(request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or uuid4().hex
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, Any]:

@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     wecom_app_secret: str = ""
     wecom_callback_token: str = ""
     wecom_encoding_aes_key: str = ""
+    wecom_callback_max_age_seconds: int = 300
 
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30
