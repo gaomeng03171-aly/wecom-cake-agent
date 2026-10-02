@@ -798,3 +798,42 @@ POST /wecom/messages
 2. 增加生产部署和反向代理说明
 3. 增加真实环境联调执行记录
 4. 增加管理台写入操作
+
+## 0.20 - 2026-10-02
+
+### 当前完成内容
+
+1. 增加 Dify Workflow 测试集
+   - 14 条固定输入
+   - 覆盖 create_dinner
+   - 覆盖 provide_preference
+   - 覆盖 generate_proposals
+   - 覆盖 vote
+   - 覆盖 unknown
+
+2. 增加真实 Dify 评测脚本
+   - 支持完整运行
+   - 支持 --only 单条运行
+   - 支持 --fail-fast
+   - 比较核心结构化字段
+   - 校验 reply 关键词
+
+3. 完成云 Dify 联调
+   - 真实模式配置验证通过
+   - 投票多 JSON 解析问题已修复
+   - 饮食限制与口味字段区分已修复
+   - missing_fields 时间字段规则已修复
+   - 最终 14/14 全部通过
+
+### 本次主要变化
+
+- 新增 docs/dify-workflow-test-cases.json
+- 新增 scripts/evaluate_dify_cases.py
+- README 增加 Dify 评测说明
+
+### 后续计划
+
+1. 生产部署：前端容器、Nginx、HTTPS 和反向代理
+2. 真实企业微信联调
+3. 管理台写入操作
+4. 增加监控和日志收集

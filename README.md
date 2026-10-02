@@ -54,6 +54,8 @@
 
 第十九阶段：事务 Outbox、回调时间窗口和提醒防重复派发已实现。
 
+第二十阶段：Dify Workflow 测试集、真实云 Dify 评测脚本和输出契约验证已完成。
+
 ## 本地启动
 
 ```powershell
@@ -252,6 +254,22 @@ GET /admin/integration-status
 ```
 
 完整步骤和常见错误见 [docs/wecom-integration-checklist.md](docs/wecom-integration-checklist.md)。
+
+## Dify Workflow 评测
+
+真实 Dify 评测：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_dify_cases.py
+```
+
+只运行单条用例：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_dify_cases.py --only create_simple
+```
+
+测试集位于 [docs/dify-workflow-test-cases.json](docs/dify-workflow-test-cases.json)，当前 14 条用例全部通过。
 
 ## 管理前端
 

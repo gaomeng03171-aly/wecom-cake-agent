@@ -1,0 +1,240 @@
+[
+  {
+    "name": "create_simple",
+    "input": "周六晚上一起吃饭吗？",
+    "expected": {
+      "intent": "create_dinner",
+      "suggested_time": "周六晚上",
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": ["cuisine_preference", "budget_max"]
+    },
+    "required_non_null_fields": ["activity_title"],
+    "reply_contains": ["聚餐"]
+  },
+  {
+    "name": "create_weekend",
+    "input": "周末想组织一次饭局",
+    "expected": {
+      "intent": "create_dinner",
+      "suggested_time": "周末",
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": ["cuisine_preference", "budget_max"]
+    },
+    "required_non_null_fields": ["activity_title"],
+    "reply_contains": ["口味", "预算"]
+  },
+  {
+    "name": "preference_time",
+    "input": "我周六晚上可以",
+    "expected": {
+      "intent": "provide_preference",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": "周六晚上",
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": ["cuisine_preference", "budget_max"]
+    },
+    "reply_contains": ["周六晚上"]
+  },
+  {
+    "name": "preference_full",
+    "input": "我周六晚上可以，想吃火锅，预算80，不要香菜",
+    "expected": {
+      "intent": "provide_preference",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": "周六晚上",
+      "cuisine_preference": "火锅",
+      "budget_max": 80,
+      "notes": "不要香菜",
+      "proposal_choice": null,
+      "missing_fields": []
+    },
+    "reply_contains": ["火锅", "80"]
+  },
+  {
+    "name": "preference_budget_only",
+    "input": "预算100",
+    "expected": {
+      "intent": "provide_preference",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": 100,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": ["available_time", "cuisine_preference"]
+    },
+    "reply_contains": ["100"]
+  },
+  {
+    "name": "preference_notes",
+    "input": "我不能吃辣，人均不要超过120",
+    "expected": {
+      "intent": "provide_preference",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": 120,
+      "notes": "不能吃辣",
+      "proposal_choice": null,
+      "missing_fields": ["available_time", "cuisine_preference"]
+    },
+    "reply_contains": ["辣", "120"]
+  },
+  {
+    "name": "generate_proposals",
+    "input": "帮我生成聚餐方案",
+    "expected": {
+      "intent": "generate_proposals",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": []
+    },
+    "reply_contains": ["方案"]
+  },
+  {
+    "name": "generate_recommendation",
+    "input": "有什么推荐的方案？",
+    "expected": {
+      "intent": "generate_proposals",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": []
+    },
+    "reply_contains": ["方案"]
+  },
+  {
+    "name": "vote_number",
+    "input": "我选1",
+    "expected": {
+      "intent": "vote",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": 1,
+      "missing_fields": []
+    },
+    "reply_contains": ["方案1"]
+  },
+  {
+    "name": "vote_phrase",
+    "input": "投方案2",
+    "expected": {
+      "intent": "vote",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": 2,
+      "missing_fields": []
+    },
+    "reply_contains": ["方案2"]
+  },
+  {
+    "name": "vote_chinese_number",
+    "input": "选第三个方案",
+    "expected": {
+      "intent": "vote",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": 3,
+      "missing_fields": []
+    },
+    "reply_contains": ["方案3"]
+  },
+  {
+    "name": "unknown_weather",
+    "input": "今天天气不错",
+    "expected": {
+      "intent": "unknown",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": []
+    },
+    "reply_contains": ["聚餐"]
+  },
+  {
+    "name": "unknown_greeting",
+    "input": "在吗",
+    "expected": {
+      "intent": "unknown",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": []
+    },
+    "reply_contains": []
+  },
+  {
+    "name": "unknown_thanks",
+    "input": "谢谢",
+    "expected": {
+      "intent": "unknown",
+      "activity_title": null,
+      "suggested_time": null,
+      "deadline": null,
+      "available_time": null,
+      "cuisine_preference": null,
+      "budget_max": null,
+      "notes": null,
+      "proposal_choice": null,
+      "missing_fields": []
+    },
+    "reply_contains": []
+  }
+]
