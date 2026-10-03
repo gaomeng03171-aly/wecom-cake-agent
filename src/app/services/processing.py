@@ -63,17 +63,21 @@ def process_inbound_message(
         )
     elif analysis.intent == "provide_preference":
         activity = find_active_activity(db, payload.group_id)
-        if activity is not None:
-            participant = apply_preferences_from_message(
+        if activity is None:
+            activity = create_activity_from_message(
                 db,
-                activity.id,
-                payload.sender_id,
-                payload.sender_name,
+                payload,
                 analysis,
                 commit=False,
             )
-        else:
-            error = "no active activity"
+        participant = apply_preferences_from_message(
+            db,
+            activity.id,
+            payload.sender_id,
+            payload.sender_name,
+            analysis,
+            commit=False,
+        )
     elif analysis.intent == "generate_proposals":
         activity = find_active_activity(db, payload.group_id)
         if activity is None:

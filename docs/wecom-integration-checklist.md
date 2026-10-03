@@ -83,7 +83,22 @@ https://your-domain.example/wecom/callback
 
 脚本会优先启动 `cloudflared`，其次是 `ngrok`。把输出的 HTTPS 域名作为回调域名即可。临时隧道适合验证签名、加解密和消息链路，不建议长期生产使用。
 
-## 5. 常见问题
+## 5. 回调能力边界
+
+当前项目使用的是企业微信自建应用回调：
+
+- 可以接收成员发给应用的单聊消息
+- 可以向应用可见成员发送单聊消息
+- 可以通过 `appchat/create` 创建应用群聊并发送消息
+- 普通企业微信群聊消息不会默认推送到自建应用回调
+
+因此，不能把“群聊里发消息”直接等同于“应用回调收到消息”。如果需要让机器人实时读取普通群聊消息，需要接入企业微信智能机器人长连接、会话内容存档等能力，或改为：
+
+- 单聊负责接收指令和偏好
+- 群机器人 Webhook 负责把方案和结果广播到群
+- 投票和报名通过管理台或网页完成
+
+## 6. 常见问题
 
 ### invalid callback signature
 
@@ -108,6 +123,8 @@ https://your-domain.example/wecom/callback
 - 应用未启用
 - 服务器出口 IP 不在企业可信 IP 范围
 
+错误码 `60020` 表示当前出口 IP 未加入企业可信 IP。把这个 IP 加入企业微信应用设置中的“企业可信 IP”后再重试。
+
 ### appchat/send 返回错误
 
 常见原因：
@@ -116,7 +133,9 @@ https://your-domain.example/wecom/callback
 - 应用没有群聊权限
 - 当前消息不是来自应用可见的群聊
 
-## 6. 安全检查
+错误码 `86001` 表示 `chatid` 无效。回调里的普通群聊 ID 不一定能直接用于 `appchat/send`；应用群聊需要先通过 `appchat/create` 创建并拿到有效的 `chatid`。
+
+## 7. 安全检查
 
 - 不提交 `.env`
 - 不在日志中打印 Secret、Token 或 EncodingAESKey

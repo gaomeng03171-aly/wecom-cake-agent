@@ -26,21 +26,35 @@
    - 其次使用 ngrok
    - 用于本地真实回调联调
 
+4. 改进单聊自然语言流程
+   - 没有活动时，直接提供时间、口味、预算会先自动创建活动
+   - 随后继续把该消息记录为发起人的偏好
+   - 避免单聊首次说“周六晚上我想吃火锅”被直接拒绝
+
+5. 明确企业微信群聊能力边界
+   - 自建应用回调可以接收单聊消息
+   - 普通群聊消息不会默认推送到自建应用回调
+   - 群聊实时接收需要智能机器人长连接或会话内容存档
+   - 文档补充企业可信 IP 的 60020 和无效 chatid 的 86001 排查
+
 ### 本次主要变化
 
 - 修改 services/wecom_callback.py
 - 修改 api/wecom_callback.py
 - 修改 clients/wecom.py
+- 修改 services/processing.py
 - 新增 scripts/debug_wecom_sender.py
 - 新增 scripts/start_wecom_tunnel.ps1
 - 扩展 tests/test_wecom_callback.py
+- 扩展 tests/test_preference_extraction.py
+- 更新 README 和 docs/wecom-integration-checklist.md
 
 ### 后续计划
 
-1. 完善自建应用发送调试与状态检查
-2. 增加公网 HTTPS 隧道联调脚本
-3. 使用真实企业微信环境完成端到端联调
-4. 记录真实联调结果
+1. 确定群聊接收方案：智能机器人长连接、会话内容存档，或单聊控制加群 Webhook 广播
+2. 增加群 Webhook 广播接口和活动结果推送
+3. 记录真实企业微信联调结果
+4. 处理回调耗时和企业微信重试策略
 
 ## 0.2 - 2026-09-28
 

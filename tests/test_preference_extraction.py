@@ -55,7 +55,7 @@ def test_preference_message_updates_participant(client) -> None:
     assert target["notes"] == "不要香菜"
 
 
-def test_preference_without_active_activity_returns_no_activity(client) -> None:
+def test_preference_without_active_activity_creates_activity(client) -> None:
     response = client.post(
         "/wecom/messages",
         json={
@@ -71,4 +71,7 @@ def test_preference_without_active_activity_returns_no_activity(client) -> None:
 
     assert response.status_code == 200
     assert response.json()["analysis"]["intent"] == "provide_preference"
-    assert response.json()["activity"] is None
+    assert response.json()["activity"] is not None
+    assert response.json()["activity"]["status"] == "collecting"
+    assert response.json()["participant"]["user_id"] == "user-001"
+    assert response.json()["participant"]["cuisine_preference"] == "火锅"

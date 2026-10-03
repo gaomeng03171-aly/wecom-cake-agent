@@ -115,7 +115,7 @@ WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key
 WECOM_SENDER_TIMEOUT_SECONDS=10
 ```
 
-当前实现使用企业微信官方群机器人 Webhook，适合验证消息发送和 Outbox 状态。完整接收群消息仍需要后续接入企业微信智能机器人或自建应用回调。
+当前实现使用企业微信官方群机器人 Webhook，适合验证消息发送和 Outbox 状态。群机器人 Webhook 只能发送，不能读取群聊消息；完整接收普通群聊消息仍需要企业微信智能机器人长连接或会话内容存档能力。
 
 ## 管理查询接口
 
@@ -236,6 +236,8 @@ direct-{user_id}：调用 message/send
 ```
 
 当前回调解析器会把没有 `ChatId` 的消息标记为 `direct-{sender_id}`，用于单聊回复。
+
+需要注意：自建应用回调可以接收成员发给应用的单聊消息，但普通企业微信群聊消息不会默认推送进来。若要让机器人读取普通群聊消息，需要接入企业微信智能机器人长连接或会话内容存档；现阶段更稳妥的模式是“单聊接收指令 + 群机器人 Webhook 广播结果”。
 
 ## 联调工具
 
