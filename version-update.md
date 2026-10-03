@@ -21,12 +21,18 @@
    - 群聊 target 使用 chat_id
    - 单聊 target 使用 direct-{user_id}
 
+3. 增加公网 HTTPS 隧道启动脚本
+   - 优先使用 cloudflared
+   - 其次使用 ngrok
+   - 用于本地真实回调联调
+
 ### 本次主要变化
 
 - 修改 services/wecom_callback.py
 - 修改 api/wecom_callback.py
 - 修改 clients/wecom.py
 - 新增 scripts/debug_wecom_sender.py
+- 新增 scripts/start_wecom_tunnel.ps1
 - 扩展 tests/test_wecom_callback.py
 
 ### 后续计划

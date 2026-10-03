@@ -75,6 +75,14 @@ https://your-domain.example/wecom/callback
 - Token 和 EncodingAESKey 与 `.env` 一致
 - 域名和端口已正确转发
 
+没有公网域名时，可以先用临时 HTTPS 隧道联调：
+
+```powershell
+.\scripts\start_wecom_tunnel.ps1 -Port 8000
+```
+
+脚本会优先启动 `cloudflared`，其次是 `ngrok`。把输出的 HTTPS 域名作为回调域名即可。临时隧道适合验证签名、加解密和消息链路，不建议长期生产使用。
+
 ## 5. 常见问题
 
 ### invalid callback signature

@@ -263,6 +263,14 @@ GET /admin/integration-status
 .\.venv\Scripts\python.exe scripts\debug_wecom_sender.py send --target direct-user-id
 ```
 
+准备公网 HTTPS 回调地址：
+
+```powershell
+.\scripts\start_wecom_tunnel.ps1 -Port 8000
+```
+
+脚本会优先使用 `cloudflared`，其次使用 `ngrok`。启动后把打印出来的 HTTPS 地址作为企业微信回调域名，回调路径保持 `/wecom/callback`。
+
 完整步骤和常见错误见 [docs/wecom-integration-checklist.md](docs/wecom-integration-checklist.md)。
 
 ## Dify Workflow 评测
