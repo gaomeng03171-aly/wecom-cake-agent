@@ -255,6 +255,14 @@ GET /admin/integration-status
 .\.venv\Scripts\python.exe scripts\debug_wecom_callback.py post
 ```
 
+调试企业微信自建应用发送：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\debug_wecom_sender.py token
+.\.venv\Scripts\python.exe scripts\debug_wecom_sender.py send --target chat-id
+.\.venv\Scripts\python.exe scripts\debug_wecom_sender.py send --target direct-user-id
+```
+
 完整步骤和常见错误见 [docs/wecom-integration-checklist.md](docs/wecom-integration-checklist.md)。
 
 ## Dify Workflow 评测

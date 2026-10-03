@@ -15,10 +15,18 @@
    - 图片、语音等非文本消息直接确认，不进入业务状态机
    - 只有 text 消息继续走消息幂等、Dify 和聚餐流程
 
+2. 增加自建应用发送调试脚本
+   - token：获取并脱敏显示 access_token
+   - send：向群聊或单聊发送测试消息
+   - 群聊 target 使用 chat_id
+   - 单聊 target 使用 direct-{user_id}
+
 ### 本次主要变化
 
 - 修改 services/wecom_callback.py
 - 修改 api/wecom_callback.py
+- 修改 clients/wecom.py
+- 新增 scripts/debug_wecom_sender.py
 - 扩展 tests/test_wecom_callback.py
 
 ### 后续计划

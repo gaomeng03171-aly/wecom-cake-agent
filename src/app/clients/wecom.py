@@ -104,7 +104,7 @@ class AppWeComSender(WeComSender):
 
     def send(self, message: OutboxMessage) -> SendResult:
         try:
-            access_token = self._get_access_token()
+            access_token = self.get_access_token()
         except RuntimeError as exc:
             return SendResult(success=False, error=str(exc))
 
@@ -169,7 +169,7 @@ class AppWeComSender(WeComSender):
             ),
         )
 
-    def _get_access_token(self) -> str:
+    def get_access_token(self) -> str:
         cache_key = (self._corp_id, self._app_secret)
         now = datetime.now(timezone.utc)
 
