@@ -55,5 +55,17 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: ./apps/admin-web
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      - app
+
 volumes:
   postgres_data:

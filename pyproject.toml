@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wecom-dinner-agent"
-version = "0.20.0"
+version = "0.21.0"
 description = "A WeCom group dinner organizer agent for learning agent project development."
 readme = "README.md"
 requires-python = ">=3.11"

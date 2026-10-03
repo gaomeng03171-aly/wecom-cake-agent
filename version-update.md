@@ -837,3 +837,45 @@ POST /wecom/messages
 2. 真实企业微信联调
 3. 管理台写入操作
 4. 增加监控和日志收集
+
+## 0.21 - 2026-10-02
+
+### 当前完成内容
+
+1. 增加管理前端生产镜像
+   - 多阶段 Node 构建
+   - Nginx 静态服务
+   - 排除 node_modules 和 dist
+
+2. 增加 Nginx 反向代理
+   - /api/ 转发到 FastAPI
+   - /wecom/ 转发到 FastAPI
+   - /health 转发到 FastAPI
+   - 静态资源缓存
+   - gzip 压缩
+
+3. 增加 HTTPS 部署
+   - TLS 证书挂载
+   - HTTP 到 HTTPS 跳转
+   - docker-compose.https.yml
+
+4. 增加部署配置
+   - APP_DOMAIN
+   - TLS_CERT_PATH
+   - TLS_KEY_PATH
+   - deploy/nginx/README.md
+
+### 本次主要变化
+
+- 新增 apps/admin-web/Dockerfile
+- 新增 deploy/nginx/default.conf.template
+- 新增 deploy/nginx/https.conf.template
+- 新增 docker-compose.https.yml
+- 更新 docker-compose.yml
+
+### 后续计划
+
+1. 企业微信真实环境联调
+2. 管理台写入操作
+3. 增加监控和日志收集
+4. 增加生产环境启动检查脚本

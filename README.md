@@ -56,6 +56,8 @@
 
 第二十阶段：Dify Workflow 测试集、真实云 Dify 评测脚本和输出契约验证已完成。
 
+第二十一阶段：前端生产镜像、Nginx 反向代理、HTTP 与 HTTPS Compose 部署已实现。
+
 ## 本地启动
 
 ```powershell
@@ -270,6 +272,27 @@ GET /admin/integration-status
 ```
 
 测试集位于 [docs/dify-workflow-test-cases.json](docs/dify-workflow-test-cases.json)，当前 14 条用例全部通过。
+
+## 生产部署
+
+HTTP 模式：
+
+```powershell
+docker compose up --build
+```
+
+管理前端地址：`http://localhost:8080`
+
+HTTPS 模式：
+
+```powershell
+$env:APP_DOMAIN = "your-domain.example"
+$env:TLS_CERT_PATH = "./certs/fullchain.pem"
+$env:TLS_KEY_PATH = "./certs/privkey.pem"
+docker compose -f docker-compose.yml -f docker-compose.https.yml up --build
+```
+
+Nginx 配置说明见 [deploy/nginx/README.md](deploy/nginx/README.md)。
 
 ## 管理前端
 

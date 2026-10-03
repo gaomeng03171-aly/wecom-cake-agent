@@ -1,0 +1,13 @@
+services:
+  web:
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      TLS_CERT_PATH: /etc/nginx/certs/fullchain.pem
+      TLS_KEY_PATH: /etc/nginx/certs/privkey.pem
+    volumes:
+      - ./deploy/nginx/https.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${TLS_CERT_PATH:-./certs/fullchain.pem}:/etc/nginx/certs/fullchain.pem:ro
+      - ${TLS_KEY_PATH:-./certs/privkey.pem}:/etc/nginx/certs/privkey.pem:ro
