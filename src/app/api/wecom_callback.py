@@ -10,7 +10,7 @@ from app.db import get_db
 from app.services.processing import process_inbound_message
 from app.services.wecom_callback import (
     WeComCallbackMessageError,
-    parse_callback_message,
+    parse_callback_envelope,
     validate_callback_timestamp,
 )
 
@@ -75,11 +75,12 @@ async def receive_wecom_callback(
         ):
             raise HTTPException(status_code=403, detail="invalid callback signature")
         plaintext = crypto.decrypt(encrypted)
-        payload = parse_callback_message(plaintext)
+        envelope = parse_callback_envelope(plaintext)
     except WeComCryptoError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except WeComCallbackMessageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    process_inbound_message(db, payload)
+    if envelope.message is not None:
+        process_inbound_message(db, envelope.message)
     return "success"

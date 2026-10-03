@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from xml.etree import ElementTree
 
@@ -6,6 +7,13 @@ from app.schemas.wecom import WeComMessageIn
 
 class WeComCallbackMessageError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class WeComCallbackEnvelope:
+    msg_type: str
+    event: str = ""
+    message: WeComMessageIn | None = None
 
 
 def validate_callback_timestamp(
@@ -27,7 +35,7 @@ def validate_callback_timestamp(
         raise WeComCallbackMessageError("callback timestamp is outside the allowed window")
 
 
-def parse_callback_message(xml_text: str) -> WeComMessageIn:
+def parse_callback_envelope(xml_text: str) -> WeComCallbackEnvelope:
     try:
         root = ElementTree.fromstring(xml_text)
     except ElementTree.ParseError as exc:
@@ -35,6 +43,16 @@ def parse_callback_message(xml_text: str) -> WeComMessageIn:
 
     def value(name: str, default: str = "") -> str:
         return root.findtext(name, default=default)
+
+    msg_type = value("MsgType", default="text")
+    if msg_type == "event":
+        return WeComCallbackEnvelope(
+            msg_type=msg_type,
+            event=value("Event"),
+        )
+
+    if msg_type != "text":
+        return WeComCallbackEnvelope(msg_type=msg_type)
 
     msg_id = value("MsgId") or value("MsgID")
     sender_id = value("FromUserName")
@@ -49,14 +67,17 @@ def parse_callback_message(xml_text: str) -> WeComMessageIn:
             tz=timezone.utc,
         )
 
-    return WeComMessageIn(
-        msg_id=msg_id,
-        group_id=value("ChatId") or f"direct-{sender_id}",
-        group_name=value("ChatName"),
-        sender_id=sender_id,
-        sender_name=value("FromUserName"),
-        msg_type=value("MsgType", default="text"),
-        content=value("Content"),
-        create_time=create_time,
-        raw_payload={"xml": xml_text},
+    return WeComCallbackEnvelope(
+        msg_type=msg_type,
+        message=WeComMessageIn(
+            msg_id=msg_id,
+            group_id=value("ChatId") or f"direct-{sender_id}",
+            group_name=value("ChatName"),
+            sender_id=sender_id,
+            sender_name=value("FromUserName"),
+            msg_type=msg_type,
+            content=value("Content"),
+            create_time=create_time,
+            raw_payload={"xml": xml_text},
+        ),
     )

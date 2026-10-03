@@ -116,3 +116,94 @@ def test_wecom_callback_message_creates_activity(client) -> None:
     ).json()
     assert len(activities) == 1
     assert activities[0]["initiator_id"] == "callback-user-001"
+
+
+def test_wecom_callback_ignores_event_messages(client) -> None:
+    timestamp = str(int(time.time()))
+    nonce = "event-nonce"
+    inner_xml = (
+        "<xml>"
+        "<ToUserName><![CDATA[test-corp]]></ToUserName>"
+        "<FromUserName><![CDATA[callback-user-001]]></FromUserName>"
+        f"<CreateTime>{timestamp}</CreateTime>"
+        "<MsgType><![CDATA[event]]></MsgType>"
+        "<Event><![CDATA[enter_agent]]></Event>"
+        "<AgentID>1</AgentID>"
+        "</xml>"
+    )
+    crypto = _crypto()
+    encrypted = crypto.encrypt(inner_xml)
+    outer_xml = (
+        "<xml>"
+        "<ToUserName><![CDATA[test-corp]]></ToUserName>"
+        f"<Encrypt><![CDATA[{encrypted}]]></Encrypt>"
+        "<AgentID>1</AgentID>"
+        "</xml>"
+    )
+    signature = crypto.signature(timestamp, nonce, encrypted)
+
+    response = client.post(
+        "/wecom/callback",
+        params={
+            "msg_signature": signature,
+            "timestamp": timestamp,
+            "nonce": nonce,
+        },
+        content=outer_xml,
+        headers={"Content-Type": "application/xml"},
+    )
+
+    assert response.status_code == 200
+    assert response.text == "success"
+
+    activities = client.get(
+        "/admin/activities",
+        params={"group_id": "callback-group-001"},
+    ).json()
+    assert activities == []
+
+
+def test_wecom_callback_ignores_non_text_messages(client) -> None:
+    timestamp = str(int(time.time()))
+    nonce = "image-nonce"
+    inner_xml = (
+        "<xml>"
+        "<ToUserName><![CDATA[test-corp]]></ToUserName>"
+        "<FromUserName><![CDATA[callback-user-001]]></FromUserName>"
+        f"<CreateTime>{timestamp}</CreateTime>"
+        "<MsgType><![CDATA[image]]></MsgType>"
+        "<PicUrl><![CDATA[https://example.com/a.jpg]]></PicUrl>"
+        "<MsgId>image-msg-001</MsgId>"
+        "<AgentID>1</AgentID>"
+        "</xml>"
+    )
+    crypto = _crypto()
+    encrypted = crypto.encrypt(inner_xml)
+    outer_xml = (
+        "<xml>"
+        "<ToUserName><![CDATA[test-corp]]></ToUserName>"
+        f"<Encrypt><![CDATA[{encrypted}]]></Encrypt>"
+        "<AgentID>1</AgentID>"
+        "</xml>"
+    )
+    signature = crypto.signature(timestamp, nonce, encrypted)
+
+    response = client.post(
+        "/wecom/callback",
+        params={
+            "msg_signature": signature,
+            "timestamp": timestamp,
+            "nonce": nonce,
+        },
+        content=outer_xml,
+        headers={"Content-Type": "application/xml"},
+    )
+
+    assert response.status_code == 200
+    assert response.text == "success"
+
+    activities = client.get(
+        "/admin/activities",
+        params={"group_id": "callback-group-001"},
+    ).json()
+    assert activities == []
