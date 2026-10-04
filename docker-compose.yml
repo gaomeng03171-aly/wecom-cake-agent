@@ -1,10 +1,10 @@
-name: wecom-dinner-agent
+name: wecom-cake-agent
 
 services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-wecom_dinner}
+      POSTGRES_DB: ${POSTGRES_DB:-wecom_cake}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
@@ -14,7 +14,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wecom_dinner}
+        - pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wecom_cake}
       interval: 5s
       timeout: 5s
       retries: 10
@@ -33,7 +33,7 @@ services:
       APP_PORT: 8000
       AGENT_SCENARIO: ${AGENT_SCENARIO:-order}
       AUTO_CREATE_TABLES: "false"
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wecom_dinner}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wecom_cake}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       DIFY_CLIENT_MODE: ${DIFY_CLIENT_MODE:-mock}
       DIFY_API_BASE: ${DIFY_API_BASE:-}
@@ -92,7 +92,7 @@ services:
       APP_PORT: 8000
       AGENT_SCENARIO: ${AGENT_SCENARIO:-order}
       AUTO_CREATE_TABLES: "false"
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wecom_dinner}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wecom_cake}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       DIFY_CLIENT_MODE: ${DIFY_CLIENT_MODE:-mock}
       DIFY_API_BASE: ${DIFY_API_BASE:-}

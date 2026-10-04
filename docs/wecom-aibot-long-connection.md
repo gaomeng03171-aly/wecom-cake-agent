@@ -55,7 +55,7 @@ worker 通过 WebSocket 接收 `message.text` 和 `message.mixed` 帧，转换�
 如果后端也在本机运行，可以直接启动 worker：
 
 ```powershell
-$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/wecom_dinner"
+$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/wecom_cake"
 .\.venv\Scripts\python.exe scripts\run_wecom_aibot_worker.py
 ```
 

@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "wecom-dinner-agent"
+    app_name: str = "wecom-cake-agent"
     app_env: str = "development"
     app_host: str = "127.0.0.1"
     app_port: int = 8000
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     dify_client_mode: str = "mock"
     dify_api_base: str = ""
     dify_api_key: str = ""
-    dify_user: str = "wecom-dinner-agent"
+    dify_user: str = "wecom-cake-agent"
     dify_timeout_seconds: float = 30.0
     order_dify_mode: str = "auto"
     dify_order_api_base: str = ""

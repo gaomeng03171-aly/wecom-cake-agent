@@ -194,7 +194,7 @@ GET /admin/messages
 切换 PostgreSQL 时配置：
 
 ```text
-DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/wecom_dinner
+DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/wecom_cake
 AUTO_CREATE_TABLES=false
 ```
 

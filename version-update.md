@@ -8,6 +8,47 @@
 - `1.x`：蛋糕订单 / 小微商户订单接待 Agent，从 `1.0` 开始计数。
 - 原临时使用的 `0.23` 订单内容，统一整理为 `1.0`。
 
+## 1.1 - 2026-10-04
+
+### 版本说明
+
+本版本完成蛋糕订单 Agent 的 Docker 资源改名和生产运行配置收敛，把原先沿用聚餐时期的 `dinner` 命名统一迁移到 `cake`，同时保留 PostgreSQL 数据。
+
+### 当前完成内容
+
+1. Docker 项目改名
+   - Compose project：`wecom-dinner-agent` -> `wecom-cake-agent`
+   - 容器：`wecom-cake-agent-app/web/db/aibot-worker-1`
+   - 镜像：`wecom-cake-agent-app/web/aibot-worker`
+   - 网络：`wecom-cake-agent_default`
+   - 数据卷：`wecom-cake-agent_postgres_data`
+
+2. PostgreSQL 数据迁移
+   - 数据库名：`wecom_dinner` -> `wecom_cake`
+   - 旧卷数据复制到新卷
+   - 新服务验证旧消息、活动和投票数据仍存在
+   - 验证后删除旧 dinner 容器、网络、镜像和数据卷
+
+3. 运行配置修复
+   - app 和 worker 补齐订单 Dify 配置
+   - app 和 worker 补齐智能机器人配置
+   - app 和 worker 补齐 `WECOM_OWNER_USER_ID`
+   - 增加 `AGENT_SCENARIO=order`
+
+4. 命名和应用标识更新
+   - Python 包名改为 `wecom-cake-agent`
+   - 应用健康检查名称改为 `wecom-cake-agent`
+   - 前端包名改为 `wecom-cake-admin`
+   - 文档和调试脚本统一使用 cake 命名
+
+### 验证结果
+
+- 后端全量测试：`67 passed`
+- `wecom-cake-agent` 容器全部运行
+- `app` 健康检查返回 `wecom-cake-agent`
+- PostgreSQL 旧业务数据保留
+- 只保留 `wecom-cake-agent_postgres_data` 数据卷
+
 ## 1.0 - 2026-10-04
 
 ### 版本说明

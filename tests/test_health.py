@@ -11,5 +11,5 @@ def test_health_returns_ok() -> None:
     assert response.headers["X-Request-ID"]
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["app"] == "wecom-dinner-agent"
+    assert payload["app"] == "wecom-cake-agent"
     assert payload["environment"] in {"development", "test"}

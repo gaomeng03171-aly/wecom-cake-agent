@@ -51,7 +51,7 @@ def main() -> int:
         "--target",
         help="Group chat id, or direct-{user_id} for a direct message.",
     )
-    parser.add_argument("--content", default="wecom-dinner-agent 联调测试")
+    parser.add_argument("--content", default="wecom-cake-agent 联调测试")
     args = parser.parse_args()
 
     sender = _build_sender()

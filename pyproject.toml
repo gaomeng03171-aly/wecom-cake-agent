@@ -3,8 +3,8 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wecom-dinner-agent"
-version = "1.0.0"
+name = "wecom-cake-agent"
+version = "1.1.0"
 description = "A WeCom group dinner organizer agent for learning agent project development."
 readme = "README.md"
 requires-python = ">=3.11"
