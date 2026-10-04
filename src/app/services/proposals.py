@@ -35,6 +35,16 @@ def list_proposals(db: Session, activity_id: int) -> list[DinnerProposal]:
     )
 
 
+def list_votes(db: Session, activity_id: int) -> list[Vote]:
+    return list(
+        db.scalars(
+            select(Vote)
+            .where(Vote.activity_id == activity_id)
+            .order_by(Vote.id)
+        ).all()
+    )
+
+
 def _active_participants(
     db: Session,
     activity_id: int,
@@ -186,7 +196,11 @@ def cast_vote(
     return existing_vote
 
 
-def confirm_activity(db: Session, activity_id: int) -> DinnerActivity:
+def confirm_activity(
+    db: Session,
+    activity_id: int,
+    commit: bool = True,
+) -> DinnerActivity:
     activity = get_activity_or_raise(db, activity_id)
     if activity.status != ActivityStatus.VOTING.value:
         raise ProposalServiceError("activity is not in voting state")
@@ -207,6 +221,9 @@ def confirm_activity(db: Session, activity_id: int) -> DinnerActivity:
 
     activity.confirmed_plan = proposal.title
     transition_activity_status(activity, ActivityStatus.CONFIRMED)
-    db.commit()
-    db.refresh(activity)
+    if commit:
+        db.commit()
+        db.refresh(activity)
+    else:
+        db.flush()
     return activity

@@ -146,6 +146,11 @@ def test_aibot_worker_does_not_reply_twice_for_duplicate_frame(client) -> None:
     async def run() -> None:
         await worker.start()
         await ws_client.handlers["message.text"](frame)
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if len(ws_client.replies) == 1:
+                break
+            await asyncio.sleep(0.02)
         await ws_client.handlers["message.text"](frame)
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:

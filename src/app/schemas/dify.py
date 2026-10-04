@@ -14,6 +14,8 @@ class DinnerDifyOutput(BaseModel):
         "create_dinner",
         "provide_preference",
         "generate_proposals",
+        "summarize",
+        "confirm",
         "vote",
         "unknown",
     ] = "unknown"

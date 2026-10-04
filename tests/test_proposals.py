@@ -182,3 +182,80 @@ def test_vote_choice_maps_to_current_activity_proposal(client) -> None:
     assert first_activity_id != second_activity_id
     assert vote_response.status_code == 200
     assert vote_response.json()["vote"]["proposal_id"] == second_proposals[0]["id"]
+
+
+def test_summary_and_confirm_commands_return_final_result(client) -> None:
+    group_id = "proposal-group-005"
+    activity_id = _create_activity(client, "wecom-proposal-009", group_id)
+    _add_preference(client, group_id)
+    client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-proposal-010",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "生成方案",
+        },
+    )
+    client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-vote-004",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "我选1",
+        },
+    )
+    client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-vote-005",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-002",
+            "sender_name": "李四",
+            "msg_type": "text",
+            "content": "我选2",
+        },
+    )
+
+    summary = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-summary-001",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "总结刚刚的方案结果",
+        },
+    )
+
+    assert summary.status_code == 200
+    assert "当前投票结果" in summary.json()["outbox"]["content"]
+    assert "确认方案" in summary.json()["outbox"]["content"]
+
+    confirmation = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-confirm-001",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "确认方案",
+        },
+    )
+
+    assert confirmation.status_code == 200
+    assert confirmation.json()["activity"]["id"] == activity_id
+    assert confirmation.json()["activity"]["status"] == "confirmed"
+    assert "最终方案已确认" in confirmation.json()["outbox"]["content"]

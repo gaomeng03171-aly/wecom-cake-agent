@@ -50,6 +50,12 @@
    - 生成后自动进入 voting 状态
    - 用户可以直接回复“我选1”完成投票
 
+8. 增加投票汇总和最终确认
+   - 支持“总结”“汇总”“整理一下”等本地命令
+   - 返回每个方案的票数和当前领先方案
+   - 支持“确认方案”后生成最终确认结果
+   - 阻止“另一个成员选3”被错误记成发言人的投票
+
 ### 本次主要变化
 
 - 修改 services/wecom_callback.py
@@ -62,6 +68,7 @@
 - 新增 services/wecom_aibot.py
 - 新增 tests/test_wecom_aibot.py
 - 扩展 tests/test_proposals.py
+- 修改 services/proposals.py 和 services/processing.py
 - 扩展 tests/test_wecom_callback.py
 - 扩展 tests/test_preference_extraction.py
 - 更新 README 和 docs/wecom-integration-checklist.md
