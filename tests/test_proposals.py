@@ -56,8 +56,10 @@ def test_generate_proposals_and_vote_flow(client) -> None:
     assert generate_response.status_code == 200
     generate_payload = generate_response.json()
     assert generate_payload["analysis"]["intent"] == "generate_proposals"
-    assert generate_payload["activity"]["status"] == "proposing"
+    assert generate_payload["activity"]["status"] == "voting"
     assert len(generate_payload["proposals"]) == 3
+    assert "1. " in generate_payload["outbox"]["content"]
+    assert "我选1" in generate_payload["outbox"]["content"]
 
     start_response = client.post(f"/activities/{activity_id}/start-voting")
     assert start_response.status_code == 200

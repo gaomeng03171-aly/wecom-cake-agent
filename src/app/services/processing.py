@@ -17,6 +17,7 @@ from app.services.proposals import (
     cast_vote,
     generate_proposals,
     list_proposals,
+    start_voting,
 )
 from app.services.outbox import dispatch_message, enqueue_reply
 
@@ -91,6 +92,12 @@ def process_inbound_message(
                     activity.id,
                     commit=False,
                 )
+                if activity.status == "proposing":
+                    activity = start_voting(
+                        db,
+                        activity.id,
+                        commit=False,
+                    )
                 proposals = [
                     DinnerProposalOut.model_validate(item) for item in generated
                 ]
@@ -117,7 +124,12 @@ def process_inbound_message(
             except ProposalServiceError as exc:
                 error = str(exc)
 
-    reply = analysis.reply if error is None else "暂时无法处理这条消息，请稍后再试。"
+    if error is not None:
+        reply = "暂时无法处理这条消息，请稍后再试。"
+    elif proposals:
+        reply = _format_proposals_reply(proposals)
+    else:
+        reply = analysis.reply
     outbox = enqueue_reply(
         db,
         payload.group_id,
@@ -145,3 +157,16 @@ def process_inbound_message(
             "outbox": OutboxMessageOut.model_validate(outbox),
         }
     )
+
+
+def _format_proposals_reply(proposals: list[DinnerProposalOut]) -> str:
+    lines = [f"我生成了 {len(proposals)} 个聚餐方案："]
+    for index, proposal in enumerate(proposals, start=1):
+        details = [proposal.proposed_time or "时间待定"]
+        if proposal.budget_estimate is not None:
+            details.append(f"预算约 {proposal.budget_estimate} 元")
+        lines.append(
+            f"{index}. {proposal.title}（{'，'.join(details)}）"
+        )
+    lines.append("请回复“我选1”“我选2”或“我选3”进行投票。")
+    return "\n".join(lines)

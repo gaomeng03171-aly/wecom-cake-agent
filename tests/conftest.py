@@ -7,6 +7,10 @@ os.environ["WECOM_SENDER_MODE"] = "mock"
 os.environ["WECOM_CORP_ID"] = "test-corp"
 os.environ["WECOM_CALLBACK_TOKEN"] = "test-token"
 os.environ["WECOM_ENCODING_AES_KEY"] = "A" * 43
+os.environ["WECOM_AIBOT_ID"] = ""
+os.environ["WECOM_AIBOT_SECRET"] = ""
+os.environ["WECOM_AIBOT_NAME"] = ""
+os.environ["WECOM_AIBOT_REQUIRE_MENTION"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient

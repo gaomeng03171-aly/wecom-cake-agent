@@ -45,6 +45,11 @@
    - worker 使用原始 frame 回复，支持群聊实时消息
    - 默认只处理 @ 机器人消息，避免普通群聊被误触发
 
+7. 修复群聊生成方案没有返回方案内容
+   - 生成方案后直接回复 1/2/3 方案列表
+   - 生成后自动进入 voting 状态
+   - 用户可以直接回复“我选1”完成投票
+
 ### 本次主要变化
 
 - 修改 services/wecom_callback.py
@@ -56,6 +61,7 @@
 - 新增 scripts/run_wecom_aibot_worker.py
 - 新增 services/wecom_aibot.py
 - 新增 tests/test_wecom_aibot.py
+- 扩展 tests/test_proposals.py
 - 扩展 tests/test_wecom_callback.py
 - 扩展 tests/test_preference_extraction.py
 - 更新 README 和 docs/wecom-integration-checklist.md

@@ -158,3 +158,35 @@ def test_aibot_worker_does_not_reply_twice_for_duplicate_frame(client) -> None:
     asyncio.run(run())
 
     assert len(ws_client.replies) == 1
+
+
+def test_aibot_worker_returns_generated_proposal_list(client) -> None:
+    ws_client = FakeAiBotWsClient()
+    worker = WeComAiBotLongConnectionWorker(ws_client=ws_client)
+
+    async def run() -> None:
+        await worker.start()
+        await ws_client.handlers["message.text"](
+            _group_frame(msg_id="aibot-create-001", content="周六晚上一起吃饭吗")
+        )
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if len(ws_client.replies) == 1:
+                break
+            await asyncio.sleep(0.02)
+        await ws_client.handlers["message.text"](
+            _group_frame(msg_id="aibot-proposals-001", content="生成方案")
+        )
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if len(ws_client.replies) == 2:
+                break
+            await asyncio.sleep(0.02)
+        await worker.stop()
+
+    asyncio.run(run())
+
+    assert len(ws_client.replies) == 2
+    reply = ws_client.replies[1][1]["markdown"]["content"]
+    assert "1. " in reply
+    assert "我选1" in reply

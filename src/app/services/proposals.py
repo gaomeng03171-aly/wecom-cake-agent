@@ -118,16 +118,25 @@ def generate_proposals(
     return activity, proposals
 
 
-def start_voting(db: Session, activity_id: int) -> DinnerActivity:
+def start_voting(
+    db: Session,
+    activity_id: int,
+    commit: bool = True,
+) -> DinnerActivity:
     activity = get_activity_or_raise(db, activity_id)
     if not list_proposals(db, activity_id):
         raise ProposalServiceError("no proposals available")
+    if activity.status == ActivityStatus.VOTING.value:
+        return activity
     if activity.status != ActivityStatus.PROPOSING.value:
         raise ProposalServiceError("activity is not in proposing state")
 
     transition_activity_status(activity, ActivityStatus.VOTING)
-    db.commit()
-    db.refresh(activity)
+    if commit:
+        db.commit()
+        db.refresh(activity)
+    else:
+        db.flush()
     return activity
 
 
