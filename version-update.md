@@ -6,7 +6,60 @@
 
 ### 版本说明
 
-项目定位调整为“面向小微商户的企业微信订单接待 Agent”，第一个场景是蛋糕店订单确认。底层继续复用 FastAPI、Dify、SQLAlchemy、Outbox、企业微信长连接、React 管理台和 Docker。
+本版本在原有企业微信接入层、Dify、SQLAlchemy、Outbox、长连接 worker、React 管理台和 Docker 的基础上，完成一次业务方向调整，而不是重做接入层。
+
+### 业务方向变化
+
+- 项目从“企业微信群聚餐组织 Agent”扩展为“面向小微商户的企业微信订单接待 Agent”。
+- 第一个正式落地场景为蛋糕店订单确认。
+- 聚餐业务不再作为主场景，但保留为 `AGENT_SCENARIO=dinner` 的兼容模式。
+- 订单业务不只为蛋糕店设计，而是使用通用订单骨架，后续可以扩展花店、维修店、蛋糕定制、打印店等类似场景。
+- 业务目标从“群内讨论和投票”转为“客户需求收集、订单确认、店主通知和订单管理”。
+
+### 架构变化
+
+原有技术栈保持不变：
+
+- FastAPI 负责 API、业务服务和状态机。
+- Dify 负责自然语言意图识别和字段抽取。
+- SQLAlchemy + Alembic 负责订单持久化和迁移。
+- Outbox 负责客户回复和店主通知的可追踪发送。
+- 企业微信智能机器人长连接负责接收群聊/单聊消息。
+- React + TypeScript 管理台负责订单查看。
+- Docker Compose 负责生产部署。
+
+新增的核心架构变化：
+
+```text
+企业微信智能机器人长连接
+  -> frame 标准化
+  -> AGENT_SCENARIO 路由
+  -> order_flow
+  -> Dify 订单意图与字段抽取
+  -> order_requirements 本地缺失字段判断
+  -> Order 状态机
+  -> Outbox
+       -> 客户回复
+       -> 店主通知
+  -> React 订单管理台
+```
+
+- 增加 `scenario` 字段和 `requirements` JSON，避免每增加一个行业就重做订单表。
+- 增加 `Customer`、`Order`、`OrderConfirmation` 三张核心业务表。
+- 增加订单状态机，明确 `collecting`、`pending_confirmation`、`confirmed`、`cancelled` 的流转边界。
+- 将订单 Dify 配置与聚餐 Dify 配置解耦，支持 `mock`、`real` 和 `auto`。
+- 增加长连接订单模式，worker 同时负责客户回复和店主通知。
+- 增加订单管理接口和管理台视图。
+
+| 维度 | 0.22 聚餐 Agent | 0.23 订单 Agent |
+| --- | --- | --- |
+| 主业务 | 群聚餐组织、方案和投票 | 客户订单接待和确认 |
+| 消息路由 | 固定聚餐流程 | `AGENT_SCENARIO` 路由 order/dinner |
+| 核心模型 | DinnerActivity、Participant、Vote | Customer、Order、OrderConfirmation |
+| 场景扩展 | 聚餐字段固定 | `scenario + requirements JSON` |
+| Dify | 聚餐 Workflow 为主 | 订单 Workflow 独立配置 |
+| 发送链路 | 客户回复/提醒为主 | 客户回复 + 店主通知 |
+| 管理台 | 活动和消息 | 订单列表、订单详情、确认记录和活动兼容 |
 
 ### 当前完成内容
 
@@ -93,7 +146,13 @@
    - 后端全量测试 67 passed
    - app、web、aibot-worker Docker 镜像构建通过
 
-### 本次主要变化
+14. 完善说明文档
+   - README 更新为订单 Agent 当前定位
+   - 增加订单 Dify Workflow 配置文档
+   - 增加订单 Dify 评测用例
+   - 补充长连接、订单模式和店主通知说明
+
+### 本次代码与文件变动
 
 - 修改 models.py
 - 新增 services/orders.py
@@ -117,12 +176,16 @@
 - 新增 scripts/create_wecom_group.py
 - 新增 migrations/versions/7a1c2b3d4e5f_add_order_domain.py
 
-### 后续计划
+### 以后的方向
 
-1. 使用真实企业微信完成蛋糕订单联调
-2. 增加店主通知失败重试和状态查看
-3. 增加订单操作按钮和人工修改能力
-4. 增加订单完成后通知和归档
+1. 使用真实企业微信完成蛋糕订单端到端联调，覆盖下单、追问、确认、店主通知和订单查询。
+2. 增加店主通知失败重试、发送状态查看和人工补发。
+3. 增加订单操作按钮，支持人工修改字段、重新确认和取消订单。
+4. 增加订单完成、取货提醒、归档和简单经营统计。
+5. 抽象第二和第三个场景，优先验证花店订单和维修预约。
+6. 将订单字段规则从代码常量逐步配置化，支持不同商户自定义必填字段。
+7. 增加多商户、多门店、权限和审计能力，为后续真实生产使用做准备。
+8. 增加日志、指标、告警和发送回执，提升可观测性和可靠性。
 
 ## 0.22 - 2026-10-03
 
