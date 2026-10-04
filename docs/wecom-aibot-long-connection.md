@@ -17,9 +17,12 @@ WECOM_AIBOT_ID=your-bot-id
 WECOM_AIBOT_SECRET=your-bot-secret
 WECOM_AIBOT_WS_URL=
 WECOM_AIBOT_NAME=聚餐助手
+WECOM_AIBOT_REQUIRE_MENTION=true
 ```
 
 `WECOM_AIBOT_WS_URL` 留空时使用 SDK 默认地址。
+
+默认只处理 @ 机器人的消息，避免普通群聊讨论触发回复。联调期间需要让机器人处理所有文本时，可以设置为 `false`。
 
 ## Docker 启动
 

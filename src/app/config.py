@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     wecom_aibot_secret: str = ""
     wecom_aibot_ws_url: str = ""
     wecom_aibot_name: str = ""
+    wecom_aibot_require_mention: bool = True
 
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30

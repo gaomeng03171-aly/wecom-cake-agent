@@ -145,10 +145,12 @@ class WeComAiBotLongConnectionWorker:
         ws_client: Any,
         session_factory: sessionmaker[Session] | None = None,
         normalizer: WeComAiBotFrameNormalizer | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self.ws_client = ws_client
         self.session_factory = session_factory or get_session_factory()
         self.normalizer = normalizer or WeComAiBotFrameNormalizer()
+        self.settings = settings or get_settings()
         self._tasks: set[asyncio.Task[Any]] = set()
 
     async def start(self) -> None:
@@ -179,6 +181,8 @@ class WeComAiBotLongConnectionWorker:
             logger.exception("WeCom AiBot frame processing failed")
 
     async def _process_frame(self, frame: dict[str, Any]) -> None:
+        if not self._should_process(frame):
+            return
         payload = self.normalizer.normalize(frame)
         if payload is None:
             return
@@ -219,6 +223,29 @@ class WeComAiBotLongConnectionWorker:
     def _record_send_result(self, outbox_id: int, result: SendResult) -> None:
         with self.session_factory() as db:
             apply_send_result(db, outbox_id, result)
+
+    def _should_process(self, frame: dict[str, Any]) -> bool:
+        if not self.settings.wecom_aibot_require_mention:
+            return True
+
+        bot_id = self.settings.wecom_aibot_id
+        bot_name = self.settings.wecom_aibot_name
+        if not bot_id and not bot_name:
+            return True
+
+        body = frame.get("body")
+        if not isinstance(body, dict):
+            return False
+
+        mentioned = _mention_values(body.get("mentioned_users"))
+        mentioned.update(_mention_values(body.get("mentions")))
+        if bot_id and bot_id in mentioned:
+            return True
+        if bot_name and bot_name in mentioned:
+            return True
+
+        content = _frame_text(body)
+        return bool(bot_name and f"@{bot_name}" in content)
 
 
 def build_wecom_aibot_ws_client(settings: Settings | None = None) -> Any:
@@ -276,3 +303,37 @@ def _send_result(raw_response: Any) -> SendResult:
 def _stable_hash(value: Any) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _mention_values(value: Any) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    result: set[str] = set()
+    for item in value:
+        if isinstance(item, str):
+            result.add(item)
+        elif isinstance(item, dict):
+            for key in ("userid", "user_id", "id", "name"):
+                if item.get(key) is not None:
+                    result.add(str(item[key]))
+    return result
+
+
+def _frame_text(body: dict[str, Any]) -> str:
+    text = body.get("text")
+    if isinstance(text, dict) and text.get("content") is not None:
+        return str(text["content"])
+    mixed = body.get("mixed")
+    if not isinstance(mixed, dict):
+        return ""
+    items = mixed.get("items")
+    if not isinstance(items, list):
+        return ""
+    parts: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        text_item = item.get("text")
+        if isinstance(text_item, dict) and text_item.get("content") is not None:
+            parts.append(str(text_item["content"]))
+    return "".join(parts)

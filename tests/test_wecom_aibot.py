@@ -1,6 +1,7 @@
 import asyncio
 import time
 
+from app.config import Settings
 from app.services.wecom_aibot import (
     WeComAiBotFrameNormalizer,
     WeComAiBotLongConnectionWorker,
@@ -67,6 +68,24 @@ def test_aibot_normalizer_combines_mixed_text_items() -> None:
     assert payload is not None
     assert payload.msg_type == "mixed"
     assert payload.content == "周六晚上"
+
+
+def test_aibot_worker_requires_mention_when_bot_is_configured() -> None:
+    settings = Settings(
+        wecom_aibot_id="BOT_ID",
+        wecom_aibot_name="聚餐助手",
+        wecom_aibot_require_mention=True,
+    )
+    worker = WeComAiBotLongConnectionWorker(
+        ws_client=FakeAiBotWsClient(),
+        settings=settings,
+    )
+    frame = _group_frame()
+
+    assert worker._should_process(frame) is False
+
+    frame["body"]["mentioned_users"] = ["BOT_ID"]
+    assert worker._should_process(frame) is True
 
 
 class FakeAiBotWsClient:
