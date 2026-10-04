@@ -69,6 +69,20 @@ def dispatch_message(
     except Exception as exc:
         result = SendResult(success=False, error=str(exc))
 
+    return apply_send_result(db, message_id, result)
+
+
+def apply_send_result(
+    db: Session,
+    message_id: int,
+    result: SendResult,
+) -> OutboxMessage:
+    message = get_outbox_message(db, message_id)
+    if message is None:
+        raise OutboxServiceError("outbox message not found")
+    if message.status == OutboxStatus.SENT.value:
+        return message
+
     if result.success:
         message.status = OutboxStatus.SENT.value
         message.provider_message_id = result.provider_message_id

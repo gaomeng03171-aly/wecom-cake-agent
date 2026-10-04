@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     wecom_encoding_aes_key: str = ""
     wecom_callback_max_age_seconds: int = 300
 
+    wecom_aibot_id: str = ""
+    wecom_aibot_secret: str = ""
+    wecom_aibot_ws_url: str = ""
+    wecom_aibot_name: str = ""
+
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30
 

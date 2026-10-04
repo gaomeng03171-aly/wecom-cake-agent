@@ -24,6 +24,7 @@ from app.services.outbox import dispatch_message, enqueue_reply
 def process_inbound_message(
     db: Session,
     payload: WeComMessageIn,
+    dispatch: bool = True,
 ) -> WeComMessageReceiveResponse:
     stored = receive_message(db, payload, commit=False)
     if stored.duplicate:
@@ -40,7 +41,8 @@ def process_inbound_message(
         )
         db.commit()
         db.refresh(outbox)
-        outbox = dispatch_message(db, outbox.id)
+        if dispatch:
+            outbox = dispatch_message(db, outbox.id)
         return stored.model_copy(
             update={
                 "dify_error": str(exc),
@@ -125,7 +127,8 @@ def process_inbound_message(
     )
     db.commit()
     db.refresh(outbox)
-    outbox = dispatch_message(db, outbox.id)
+    if dispatch:
+        outbox = dispatch_message(db, outbox.id)
 
     return stored.model_copy(
         update={

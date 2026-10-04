@@ -37,6 +37,13 @@
    - 群聊实时接收需要智能机器人长连接或会话内容存档
    - 文档补充企业可信 IP 的 60020 和无效 chatid 的 86001 排查
 
+6. 增加智能机器人长连接接入
+   - 增加 wecom-aibot-sdk 依赖
+   - 增加 WECOM_AIBOT_ID、WECOM_AIBOT_SECRET、WECOM_AIBOT_WS_URL、WECOM_AIBOT_NAME
+   - 增加 frame 标准化和长连接 worker
+   - 长连接消息复用现有 Dify、活动和 Outbox 流程
+   - worker 使用原始 frame 回复，支持群聊实时消息
+
 ### 本次主要变化
 
 - 修改 services/wecom_callback.py
@@ -45,16 +52,19 @@
 - 修改 services/processing.py
 - 新增 scripts/debug_wecom_sender.py
 - 新增 scripts/start_wecom_tunnel.ps1
+- 新增 scripts/run_wecom_aibot_worker.py
+- 新增 services/wecom_aibot.py
+- 新增 tests/test_wecom_aibot.py
 - 扩展 tests/test_wecom_callback.py
 - 扩展 tests/test_preference_extraction.py
 - 更新 README 和 docs/wecom-integration-checklist.md
 
 ### 后续计划
 
-1. 确定群聊接收方案：智能机器人长连接、会话内容存档，或单聊控制加群 Webhook 广播
-2. 增加群 Webhook 广播接口和活动结果推送
+1. 配置真实智能机器人凭据并完成群消息联调
+2. 增加长连接心跳和 worker 状态展示
 3. 记录真实企业微信联调结果
-4. 处理回调耗时和企业微信重试策略
+4. 处理 Dify 耗时、长连接回复超时和失败重试
 
 ## 0.2 - 2026-09-28
 

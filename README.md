@@ -239,6 +239,8 @@ direct-{user_id}：调用 message/send
 
 需要注意：自建应用回调可以接收成员发给应用的单聊消息，但普通企业微信群聊消息不会默认推送进来。若要让机器人读取普通群聊消息，需要接入企业微信智能机器人长连接或会话内容存档；现阶段更稳妥的模式是“单聊接收指令 + 群机器人 Webhook 广播结果”。
 
+智能机器人长连接配置和启动方式见 [docs/wecom-aibot-long-connection.md](docs/wecom-aibot-long-connection.md)。
+
 ## 联调工具
 
 查询当前配置是否满足企业微信和 Dify 联调要求：

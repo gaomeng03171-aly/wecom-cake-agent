@@ -6,6 +6,7 @@ from app.schemas.activity import IntegrationStatusOut
 def get_integration_status(settings: Settings) -> IntegrationStatusOut:
     sender_missing: list[str] = []
     sender_ready = True
+    aibot_missing: list[str] = []
 
     if settings.wecom_sender_mode == "webhook":
         if not settings.wecom_webhook_url:
@@ -17,6 +18,11 @@ def get_integration_status(settings: Settings) -> IntegrationStatusOut:
             sender_missing.append("WECOM_AGENT_ID")
         if not settings.wecom_app_secret:
             sender_missing.append("WECOM_APP_SECRET")
+    elif settings.wecom_sender_mode == "aibot_ws":
+        if not settings.wecom_aibot_id:
+            sender_missing.append("WECOM_AIBOT_ID")
+        if not settings.wecom_aibot_secret:
+            sender_missing.append("WECOM_AIBOT_SECRET")
     elif settings.wecom_sender_mode != "mock":
         sender_missing.append("WECOM_SENDER_MODE")
 
@@ -36,11 +42,17 @@ def get_integration_status(settings: Settings) -> IntegrationStatusOut:
             dify_missing.append("DIFY_API_KEY")
 
     sender_ready = not sender_missing
+    if not settings.wecom_aibot_id:
+        aibot_missing.append("WECOM_AIBOT_ID")
+    if not settings.wecom_aibot_secret:
+        aibot_missing.append("WECOM_AIBOT_SECRET")
 
     return IntegrationStatusOut(
         wecom_sender_mode=settings.wecom_sender_mode,
         wecom_sender_ready=sender_ready,
         missing_wecom_sender_config=sender_missing,
+        wecom_aibot_ready=not aibot_missing,
+        missing_wecom_aibot_config=aibot_missing,
         wecom_callback_ready=not callback_missing,
         missing_wecom_callback_config=callback_missing,
         wecom_callback_url="/wecom/callback",

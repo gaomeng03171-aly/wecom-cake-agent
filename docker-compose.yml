@@ -67,5 +67,32 @@ services:
     depends_on:
       - app
 
+  aibot-worker:
+    build: .
+    profiles:
+      - aibot
+    command:
+      - python
+      - scripts/run_wecom_aibot_worker.py
+    environment:
+      APP_ENV: production
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      AUTO_CREATE_TABLES: "false"
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-wecom_dinner}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      DIFY_CLIENT_MODE: ${DIFY_CLIENT_MODE:-mock}
+      DIFY_API_BASE: ${DIFY_API_BASE:-}
+      DIFY_API_KEY: ${DIFY_API_KEY:-}
+      WECOM_AIBOT_ID: ${WECOM_AIBOT_ID:-}
+      WECOM_AIBOT_SECRET: ${WECOM_AIBOT_SECRET:-}
+      WECOM_AIBOT_WS_URL: ${WECOM_AIBOT_WS_URL:-}
+      WECOM_AIBOT_NAME: ${WECOM_AIBOT_NAME:-}
+      WECOM_SENDER_MODE: aibot_ws
+      REMINDER_SCHEDULER_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:

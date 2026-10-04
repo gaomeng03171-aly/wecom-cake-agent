@@ -178,6 +178,8 @@ class IntegrationStatusOut(BaseModel):
     wecom_sender_mode: str
     wecom_sender_ready: bool
     missing_wecom_sender_config: list[str]
+    wecom_aibot_ready: bool
+    missing_wecom_aibot_config: list[str]
     wecom_callback_ready: bool
     missing_wecom_callback_config: list[str]
     wecom_callback_url: str
