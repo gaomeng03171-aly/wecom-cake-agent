@@ -357,6 +357,7 @@ tbody tr.selected {
 
 .status-collecting,
 .status-proposing,
+.status-pending_confirmation,
 .status-pending {
   color: #8a5a0a;
   background: #fff1d6;

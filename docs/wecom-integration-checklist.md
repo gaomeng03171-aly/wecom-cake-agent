@@ -16,6 +16,17 @@
 mock：本地开发
 webhook：群机器人 Webhook
 app：自建应用 API
+aibot_ws：企业微信智能机器人长连接
+```
+
+当前订单场景还需要：
+
+```text
+AGENT_SCENARIO=order
+WECOM_AIBOT_ID=
+WECOM_AIBOT_SECRET=
+WECOM_OWNER_USER_ID=店主的企业微信userid
+ORDER_DIFY_MODE=auto
 ```
 
 ## 2. 本地回调验证

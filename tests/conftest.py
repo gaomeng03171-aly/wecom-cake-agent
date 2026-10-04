@@ -2,7 +2,9 @@ import os
 
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["AGENT_SCENARIO"] = "dinner"
 os.environ["DIFY_CLIENT_MODE"] = "mock"
+os.environ["ORDER_DIFY_MODE"] = "mock"
 os.environ["WECOM_SENDER_MODE"] = "mock"
 os.environ["WECOM_CORP_ID"] = "test-corp"
 os.environ["WECOM_CALLBACK_TOKEN"] = "test-token"
@@ -11,6 +13,7 @@ os.environ["WECOM_AIBOT_ID"] = ""
 os.environ["WECOM_AIBOT_SECRET"] = ""
 os.environ["WECOM_AIBOT_NAME"] = ""
 os.environ["WECOM_AIBOT_REQUIRE_MENTION"] = "false"
+os.environ["WECOM_OWNER_USER_ID"] = "owner-001"
 
 import pytest
 from fastapi.testclient import TestClient

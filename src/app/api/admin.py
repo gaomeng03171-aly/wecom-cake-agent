@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.models import ActivityStatus
+from app.models import ActivityStatus, OrderStatus
 from app.schemas.activity import (
     AdminActivityDetailOut,
     AdminInboundMessageOut,
@@ -13,11 +13,14 @@ from app.schemas.activity import (
     DinnerActivityOut,
     IntegrationStatusOut,
 )
+from app.schemas.order import AdminOrderDetailOut, OrderOut
 from app.services.admin import (
     get_activity_detail,
+    get_order_detail,
     get_overview,
     list_activities,
     list_inbound_messages,
+    list_orders,
 )
 from app.services.integration_status import get_integration_status
 
@@ -103,3 +106,39 @@ def admin_messages(
 )
 def admin_integration_status() -> IntegrationStatusOut:
     return get_integration_status(get_settings())
+
+
+@router.get(
+    "/orders",
+    response_model=list[OrderOut],
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_orders(
+    status: OrderStatus | None = None,
+    scenario: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+) -> list[OrderOut]:
+    return list_orders(
+        db,
+        status=status,
+        scenario=scenario,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/orders/{order_id}",
+    response_model=AdminOrderDetailOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_order_detail(
+    order_id: int,
+    db: Session = Depends(get_db),
+) -> AdminOrderDetailOut:
+    detail = get_order_detail(db, order_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="order not found")
+    return detail

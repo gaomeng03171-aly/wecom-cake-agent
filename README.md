@@ -1,10 +1,12 @@
 # wecom-dinner-agent
 
-一个面向企业微信群的聚餐组织 Agent，用来学习和实践 Agent 项目开发。
+当前定位：面向小微商户的企业微信订单接待 Agent，第一个落地场景是蛋糕店订单确认。原聚餐组织流程保留为兼容场景。
 
 ## 目标场景
 
-群成员在企业微信群里发起约饭，机器人负责收集时间、人数、口味和预算，生成候选方案，组织投票，并在最终方案确认后发送提醒。
+客户通过企业微信描述订单需求，机器人负责收集商品、数量、尺寸、口味、取货时间和备注，字段完整后生成订单确认文本；客户确认后写入订单，并通过 Outbox 通知店主。
+
+订单 Dify 可以先使用本地规则模式；需要真实大模型抽取时，按 [docs/order-dify-workflow.md](docs/order-dify-workflow.md) 配置独立 Workflow。
 
 ## 设计原则
 
@@ -58,6 +60,8 @@
 
 第二十一阶段：前端生产镜像、Nginx 反向代理、HTTP 与 HTTPS Compose 部署已实现。
 
+当前 0.23：项目定位调整为面向小微商户的企业微信订单接待 Agent。已完成订单领域模型、Alembic 迁移、订单状态机、蛋糕订单 Dify 意图与字段抽取、订单会话流程、店主 Outbox 通知、企业微信长连接 worker 接入，以及订单列表和详情管理台。
+
 ## 本地启动
 
 ```powershell
@@ -76,6 +80,29 @@ Invoke-RestMethod -Method Post `
   -ContentType "application/json" `
   -Body '{"msg_id":"wecom-msg-001","group_id":"group-001","group_name":"周末聚餐群","sender_id":"user-001","sender_name":"张三","msg_type":"text","content":"周六晚上一起吃饭吗？"}'
 ```
+
+## 订单 Agent
+
+默认场景为蛋糕订单确认：
+
+```text
+AGENT_SCENARIO=order
+WECOM_OWNER_USER_ID=店主的企业微信userid
+```
+
+订单字段完整后，机器人会生成确认文本；客户确认后写入 `orders` 和 `order_confirmations`，并创建一条发送给店主的 Outbox 消息。
+
+订单 Dify 支持三种模式：
+
+```text
+ORDER_DIFY_MODE=auto
+```
+
+- `auto`：有 `DIFY_ORDER_API_KEY` 时优先使用，否则复用 `DIFY_API_KEY`
+- `mock`：使用本地规则解析，适合无 Dify 开发
+- `real`：使用订单专用 Dify 配置
+
+订单 Workflow 的提示词、输出字段和测试输入见 [docs/order-dify-workflow.md](docs/order-dify-workflow.md)。
 
 ## 接入真实 Dify
 
@@ -104,6 +131,14 @@ reply
 ```
 
 只需要 Dify 应用 API Key 和应用地址，不需要在项目里配置 Dify 登录账号或密码。
+
+订单场景使用独立的输出契约和评测：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_order_dify_cases.py
+```
+
+评测集位于 [docs/order-dify-test-cases.json](docs/order-dify-test-cases.json)。
 
 ## 接入企业微信发送
 
@@ -135,6 +170,8 @@ X-Admin-Key: your-admin-key
 
 ```text
 GET /admin/overview
+GET /admin/orders
+GET /admin/orders/{order_id}
 GET /admin/activities
 GET /admin/activities/{activity_id}
 GET /admin/messages
@@ -167,6 +204,12 @@ Compose 会启动 PostgreSQL 和应用，并在应用启动前执行 `alembic up
 
 ```powershell
 docker compose up --build
+```
+
+启用企业微信智能机器人长连接 worker：
+
+```powershell
+docker compose --profile aibot up -d --build aibot-worker
 ```
 
 可在项目根目录的 `.env` 中覆盖 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 以及外部服务配置。
@@ -267,6 +310,12 @@ GET /admin/integration-status
 .\.venv\Scripts\python.exe scripts\debug_wecom_sender.py send --target direct-user-id
 ```
 
+创建应用群聊并发送首条测试消息：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\create_wecom_group.py --name "蛋糕订单群" --userids user-a,user-b
+```
+
 准备公网 HTTPS 回调地址：
 
 ```powershell
@@ -332,14 +381,15 @@ http://127.0.0.1:5173
 
 前端开发服务器会把 `/api` 代理到 FastAPI。若配置了 `ADMIN_API_KEY`，可在左侧输入管理密钥，密钥只保存在浏览器 `sessionStorage`。
 
-## 计划中的 MVP
+## 0.23 已完成范围
 
-1. 初始化 FastAPI 后端与健康检查
-2. 接入 mock 企微消息并实现幂等入库
-3. 接入 Dify mock 并校验结构化输出
-4. 实现聚餐活动状态机
-5. 实现候选方案生成与投票
-6. 增加活动提醒和管理查询
+1. 订单领域模型、Alembic 迁移和订单状态机
+2. `create_order`、`provide_requirement`、`update_requirement`、`confirm_order`、`cancel_order` 意图
+3. 订单字段抽取、缺失字段追问和订单确认文本
+4. 客户确认后写入订单、保存确认记录并创建店主通知 Outbox
+5. 企业微信智能机器人长连接订单模式
+6. React 管理台订单列表、详情、状态和确认记录
+7. 真实订单 Dify 评测脚本，当前 7/7 用例通过
 
 ## 许可
 

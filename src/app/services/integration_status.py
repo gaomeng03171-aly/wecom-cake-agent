@@ -7,6 +7,7 @@ def get_integration_status(settings: Settings) -> IntegrationStatusOut:
     sender_missing: list[str] = []
     sender_ready = True
     aibot_missing: list[str] = []
+    order_dify_missing: list[str] = []
 
     if settings.wecom_sender_mode == "webhook":
         if not settings.wecom_webhook_url:
@@ -46,8 +47,16 @@ def get_integration_status(settings: Settings) -> IntegrationStatusOut:
         aibot_missing.append("WECOM_AIBOT_ID")
     if not settings.wecom_aibot_secret:
         aibot_missing.append("WECOM_AIBOT_SECRET")
+    if settings.order_dify_mode in {"real", "http"}:
+        if not settings.dify_order_api_base and not settings.dify_api_base:
+            order_dify_missing.append("DIFY_ORDER_API_BASE")
+        if not settings.dify_order_api_key and not settings.dify_api_key:
+            order_dify_missing.append("DIFY_ORDER_API_KEY")
 
     return IntegrationStatusOut(
+        order_dify_mode=settings.order_dify_mode,
+        order_dify_ready=not order_dify_missing,
+        missing_order_dify_config=order_dify_missing,
         wecom_sender_mode=settings.wecom_sender_mode,
         wecom_sender_ready=sender_ready,
         missing_wecom_sender_config=sender_missing,

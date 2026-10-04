@@ -2,6 +2,128 @@
 
 # Version Update
 
+## 0.23 - 2026-10-04
+
+### 版本说明
+
+项目定位调整为“面向小微商户的企业微信订单接待 Agent”，第一个场景是蛋糕店订单确认。底层继续复用 FastAPI、Dify、SQLAlchemy、Outbox、企业微信长连接、React 管理台和 Docker。
+
+### 当前完成内容
+
+1. 设计订单领域模型
+   - Customer 客户模型
+   - Order 通用订单模型
+   - OrderConfirmation 订单确认记录
+   - scenario 区分 cake、flower、repair 等业务场景
+   - requirements 使用 JSON 保存场景差异化字段
+
+2. 实现订单状态机
+   - collecting -> pending_confirmation -> confirmed
+   - collecting -> cancelled
+   - pending_confirmation -> cancelled
+   - confirmed 和 cancelled 为终态
+
+3. 增加数据库迁移
+   - 新增 customers、orders、order_confirmations 三张表
+   - 增加订单状态、场景和关联索引
+   - 验证 upgrade head 和 downgrade base
+
+4. 增加订单 Dify 输出模型
+   - create_order
+   - provide_requirement
+   - update_requirement
+   - confirm_order
+   - cancel_order
+   - unknown
+
+5. 增加订单字段抽取和缺失字段判断
+   - 蛋糕场景支持商品、数量、尺寸、口味、留言、取货/配送时间、地址、电话和预算
+   - 本地按场景字段规则判断缺失项
+   - 缺失字段生成逐项追问
+
+6. 增加订单确认文本
+   - 字段完整后生成订单确认文本
+   - 提示客户回复“确认下单”
+   - mock Dify 支持订单意图和字段抽取
+
+7. 增加订单会话流程
+   - create_order 创建订单
+   - provide_requirement 合并字段
+   - update_requirement 修改字段
+   - confirm_order 写入 confirmed 状态和确认记录
+   - cancel_order 写入 cancelled 状态
+
+8. 增加店主通知 Outbox
+   - 客户确认订单后创建店主通知 Outbox
+   - 店主目标使用 WECOM_OWNER_USER_ID
+   - 通知内容包含完整订单快照
+
+9. 接入企业微信长连接 worker
+   - 增加 AGENT_SCENARIO 配置
+   - order 模式走订单会话流程
+   - dinner 模式保留原聚餐流程
+   - 客户回复通过原始回调 frame 发送
+   - 店主通知通过长连接 send_message 发送
+
+10. 增加订单管理台
+   - 新增订单列表和订单详情接口
+   - 总览增加订单统计
+   - React 管理台增加订单视图
+   - 展示订单字段、待补充字段和确认记录
+
+11. 拆分订单 Dify 配置
+   - ORDER_DIFY_MODE=auto 优先复用通用 Dify Key
+   - ORDER_DIFY_MODE=mock 使用本地规则解析
+   - ORDER_DIFY_MODE=real 使用独立订单 Workflow
+   - 增加 DIFY_ORDER_API_BASE、DIFY_ORDER_API_KEY
+   - 增加订单 Dify 配置状态展示
+   - 增加 docs/order-dify-workflow.md 提示词和输出规范
+
+12. 增加订单 Dify 评测
+   - 增加 docs/order-dify-test-cases.json
+   - 增加 scripts/evaluate_order_dify_cases.py
+   - mock 模式 7/7 用例通过
+   - 真实 wecom-cake Workflow 7/7 用例通过
+   - 支持 auto 模式复用 DIFY_API_KEY
+
+13. 完成订单生产验证
+   - 真实 Dify HttpDifyClient 联调通过
+   - 订单字段归一化处理
+   - unknown 意图不再被说明性 notes 误覆盖
+   - 后端全量测试 67 passed
+   - app、web、aibot-worker Docker 镜像构建通过
+
+### 本次主要变化
+
+- 修改 models.py
+- 新增 services/orders.py
+- 新增 services/order_requirements.py
+- 新增 services/order_flow.py
+- 新增 tests/test_order_state_machine.py
+- 新增 tests/test_order_dify_mock.py
+- 新增 tests/test_order_flow.py
+- 修改 schemas/dify.py
+- 修改 clients/dify.py
+- 修改 services/dify.py
+- 修改 services/wecom_aibot.py
+- 修改 api/admin.py
+- 修改 services/admin.py
+- 修改 schemas/activity.py
+- 新增 schemas/order.py
+- 修改 apps/admin-web 订单视图和类型
+- 新增 docs/order-dify-workflow.md
+- 新增 docs/order-dify-test-cases.json
+- 新增 scripts/evaluate_order_dify_cases.py
+- 新增 scripts/create_wecom_group.py
+- 新增 migrations/versions/7a1c2b3d4e5f_add_order_domain.py
+
+### 后续计划
+
+1. 使用真实企业微信完成蛋糕订单联调
+2. 增加店主通知失败重试和状态查看
+3. 增加订单操作按钮和人工修改能力
+4. 增加订单完成后通知和归档
+
 ## 0.22 - 2026-10-03
 
 ### 版本说明

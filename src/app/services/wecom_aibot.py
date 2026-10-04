@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -12,9 +13,19 @@ from app.config import Settings, get_settings
 from app.db import get_session_factory
 from app.schemas.wecom import WeComMessageIn
 from app.services.outbox import apply_send_result
+from app.services.order_flow import process_order_message
 from app.services.processing import process_inbound_message
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AiBotDispatchPlan:
+    customer_outbox_id: int
+    customer_content: str
+    owner_outbox_id: int | None = None
+    owner_target: str | None = None
+    owner_content: str | None = None
 
 
 class WeComAiBotFrameNormalizer:
@@ -187,17 +198,16 @@ class WeComAiBotLongConnectionWorker:
         if payload is None:
             return
 
-        pending = await asyncio.to_thread(self._process_message, payload)
-        if pending is None:
+        plan = await asyncio.to_thread(self._process_message, payload)
+        if plan is None:
             return
-        outbox_id, content = pending
 
         try:
             raw_response = await self.ws_client.reply(
                 frame,
                 {
                     "msgtype": "markdown",
-                    "markdown": {"content": content},
+                    "markdown": {"content": plan.customer_content},
                 },
             )
             result = _send_result(raw_response)
@@ -206,19 +216,72 @@ class WeComAiBotLongConnectionWorker:
 
         await asyncio.to_thread(
             self._record_send_result,
-            outbox_id,
+            plan.customer_outbox_id,
             result,
         )
+
+        if (
+            plan.owner_outbox_id is not None
+            and plan.owner_target
+            and plan.owner_content
+            and getattr(self.ws_client, "send_message", None) is not None
+        ):
+            try:
+                raw_response = await self.ws_client.send_message(
+                    plan.owner_target,
+                    {
+                        "msgtype": "markdown",
+                        "markdown": {"content": plan.owner_content},
+                    },
+                )
+                result = _send_result(raw_response)
+            except Exception as exc:
+                result = SendResult(success=False, error=str(exc))
+
+            await asyncio.to_thread(
+                self._record_send_result,
+                plan.owner_outbox_id,
+                result,
+            )
 
     def _process_message(
         self,
         payload: WeComMessageIn,
-    ) -> tuple[int, str] | None:
+    ) -> AiBotDispatchPlan | None:
         with self.session_factory() as db:
+            if self.settings.agent_scenario == "order":
+                result = process_order_message(
+                    db,
+                    payload,
+                    settings=self.settings,
+                    commit=True,
+                )
+                if result.duplicate or result.customer_outbox is None:
+                    return None
+                owner_target = None
+                owner_outbox_id = None
+                owner_content = None
+                if result.owner_notification is not None:
+                    owner_outbox_id = result.owner_notification.id
+                    owner_content = result.owner_notification.content
+                    owner_target = result.owner_notification.group_id
+                    if owner_target.startswith("direct-"):
+                        owner_target = owner_target.removeprefix("direct-")
+                return AiBotDispatchPlan(
+                    customer_outbox_id=result.customer_outbox.id,
+                    customer_content=result.customer_outbox.content,
+                    owner_outbox_id=owner_outbox_id,
+                    owner_target=owner_target,
+                    owner_content=owner_content,
+                )
+
             response = process_inbound_message(db, payload, dispatch=False)
             if response.duplicate or response.outbox is None:
                 return None
-            return response.outbox.id, response.outbox.content
+            return AiBotDispatchPlan(
+                customer_outbox_id=response.outbox.id,
+                customer_content=response.outbox.content,
+            )
 
     def _record_send_result(self, outbox_id: int, result: SendResult) -> None:
         with self.session_factory() as db:

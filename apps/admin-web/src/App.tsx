@@ -2,6 +2,7 @@ import {
   Activity as ActivityIcon,
   CalendarRange,
   CheckCircle2,
+  ClipboardList,
   CircleAlert,
   Database,
   LayoutDashboard,
@@ -9,6 +10,7 @@ import {
   PlugZap,
   RefreshCw,
   Send,
+  Store,
   Users,
   Vote as VoteIcon,
 } from "lucide-react";
@@ -21,12 +23,15 @@ import type {
   ActivityStatus,
   InboundMessage,
   IntegrationStatus,
+  Order,
+  OrderDetail,
+  OrderStatus,
   OutboxMessage,
   Overview,
   Reminder,
 } from "./types";
 
-type View = "overview" | "activities" | "messages" | "integration";
+type View = "overview" | "orders" | "activities" | "messages" | "integration";
 
 const navItems: Array<{
   id: View;
@@ -34,6 +39,7 @@ const navItems: Array<{
   icon: typeof LayoutDashboard;
 }> = [
   { id: "overview", label: "总览", icon: LayoutDashboard },
+  { id: "orders", label: "订单", icon: ClipboardList },
   { id: "activities", label: "活动", icon: CalendarRange },
   { id: "messages", label: "消息", icon: MessageSquareText },
   { id: "integration", label: "联调状态", icon: PlugZap },
@@ -45,6 +51,13 @@ const statusLabels: Record<ActivityStatus, string> = {
   voting: "投票中",
   confirmed: "已确认",
   completed: "已完成",
+  cancelled: "已取消",
+};
+
+const orderStatusLabels: Record<OrderStatus, string> = {
+  collecting: "收集中",
+  pending_confirmation: "待确认",
+  confirmed: "已确认",
   cancelled: "已取消",
 };
 
@@ -213,16 +226,112 @@ function ActivityDetailPanel({ detail }: { detail: ActivityDetail | null }) {
   );
 }
 
+function OrderDetailPanel({ detail }: { detail: OrderDetail | null }) {
+  if (!detail) {
+    return <EmptyState text="选择一条订单查看详情" />;
+  }
+
+  const { order, customer, confirmations } = detail;
+  const requirementEntries = Object.entries(order.requirements ?? {});
+
+  return (
+    <section className="detail-panel">
+      <div className="detail-heading">
+        <div>
+          <p className="eyebrow">订单 #{order.id}</p>
+          <h2>{order.title}</h2>
+          <span>{order.conversation_name || order.conversation_id}</span>
+        </div>
+        <StatusBadge status={order.status} />
+      </div>
+
+      <div className="detail-summary">
+        <div>
+          <span>客户</span>
+          <strong>{customer.name || customer.external_id}</strong>
+        </div>
+        <div>
+          <span>场景</span>
+          <strong>{order.scenario}</strong>
+        </div>
+        <div>
+          <span>更新时间</span>
+          <strong>{formatDate(order.updated_at)}</strong>
+        </div>
+      </div>
+
+      <div className="subsection">
+        <div className="subsection-heading">
+          <h3>订单信息</h3>
+          <span>{requirementEntries.length} 项</span>
+        </div>
+        <div className="proposal-list">
+          {requirementEntries.map(([key, value]) => (
+            <div className="proposal-row" key={key}>
+              <strong>{key}</strong>
+              <span>{String(value)}</span>
+            </div>
+          ))}
+          {requirementEntries.length === 0 ? (
+            <EmptyState text="还没有收集到订单字段" />
+          ) : null}
+        </div>
+      </div>
+
+      {order.missing_fields.length ? (
+        <div className="subsection">
+          <div className="subsection-heading">
+            <h3>待补充</h3>
+            <span>{order.missing_fields.length} 项</span>
+          </div>
+          <div className="event-list">
+            {order.missing_fields.map((field) => (
+              <div className="event-row" key={field}>
+                <StatusBadge status="pending" />
+                <span>{field}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="subsection">
+        <div className="subsection-heading">
+          <h3>确认记录</h3>
+          <span>{confirmations.length} 条</span>
+        </div>
+        <div className="event-list">
+          {confirmations.map((confirmation) => (
+            <div className="event-row" key={confirmation.id}>
+              <StatusBadge status="confirmed" />
+              <span>{confirmation.confirmation_text || confirmation.confirmation_type}</span>
+            </div>
+          ))}
+          {confirmations.length === 0 ? (
+            <EmptyState text="还没有确认记录" />
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function App() {
   const [view, setView] = useState<View>("overview");
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [messages, setMessages] = useState<InboundMessage[]>([]);
   const [integration, setIntegration] = useState<IntegrationStatus | null>(null);
+  const [selectedOrderDetail, setSelectedOrderDetail] =
+    useState<OrderDetail | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<ActivityDetail | null>(null);
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [groupFilter, setGroupFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("");
+  const [orderScenarioFilter, setOrderScenarioFilter] = useState("");
   const [adminKey, setAdminKeyState] = useState(getAdminKey());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -234,9 +343,13 @@ export function App() {
       const query = new URLSearchParams();
       if (groupFilter) query.set("group_id", groupFilter);
       if (statusFilter) query.set("status", statusFilter);
-      const [overviewData, activityData, messageData, integrationData] =
+      const orderQuery = new URLSearchParams();
+      if (orderStatusFilter) orderQuery.set("status", orderStatusFilter);
+      if (orderScenarioFilter) orderQuery.set("scenario", orderScenarioFilter);
+      const [overviewData, orderData, activityData, messageData, integrationData] =
         await Promise.all([
           apiFetch<Overview>("/admin/overview"),
+          apiFetch<Order[]>(`/admin/orders?${orderQuery.toString()}`),
           apiFetch<Activity[]>(`/admin/activities?${query.toString()}`),
           apiFetch<InboundMessage[]>(
             `/admin/messages?${groupFilter ? `group_id=${encodeURIComponent(groupFilter)}` : ""}`,
@@ -244,6 +357,7 @@ export function App() {
           apiFetch<IntegrationStatus>("/admin/integration-status"),
         ]);
       setOverview(overviewData);
+      setOrders(orderData);
       setActivities(activityData);
       setMessages(messageData);
       setIntegration(integrationData);
@@ -266,9 +380,19 @@ export function App() {
     }
   }
 
+  async function openOrder(orderId: number) {
+    setSelectedOrderId(orderId);
+    try {
+      const detail = await apiFetch<OrderDetail>(`/admin/orders/${orderId}`);
+      setSelectedOrderDetail(detail);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "加载失败");
+    }
+  }
+
   useEffect(() => {
     void loadData();
-  }, [groupFilter, statusFilter]);
+  }, [groupFilter, statusFilter, orderStatusFilter, orderScenarioFilter]);
 
   function updateAdminKey(value: string) {
     setAdminKey(value);
@@ -279,10 +403,10 @@ export function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">聚</div>
+          <div className="brand-mark">单</div>
           <div>
-            <strong>聚餐 Agent</strong>
-            <span>管理台</span>
+            <strong>订单 Agent</strong>
+            <span>小微商户管理台</span>
           </div>
         </div>
         <nav>
@@ -335,6 +459,19 @@ export function App() {
         {view === "overview" && overview ? (
           <section className="view-section">
             <div className="metric-grid">
+              <Metric label="订单总数" value={overview.total_orders} icon={ClipboardList} />
+              <Metric
+                label="待确认订单"
+                value={overview.pending_confirmation_orders}
+                icon={Store}
+                tone="amber"
+              />
+              <Metric
+                label="已确认订单"
+                value={overview.confirmed_orders}
+                icon={CheckCircle2}
+                tone="green"
+              />
               <Metric label="活动总数" value={overview.total_activities} icon={CalendarRange} />
               <Metric label="进行中" value={overview.active_activities} icon={ActivityIcon} />
               <Metric label="消息" value={overview.inbound_messages} icon={MessageSquareText} />
@@ -344,6 +481,70 @@ export function App() {
               <Metric label="待发送" value={overview.outbox_pending} icon={Send} tone="amber" />
               <Metric label="发送失败" value={overview.outbox_failed} icon={CircleAlert} tone="red" />
             </div>
+          </section>
+        ) : null}
+
+        {view === "orders" ? (
+          <section className="view-section split-layout">
+            <div className="table-panel">
+              <div className="toolbar">
+                <select
+                  value={orderScenarioFilter}
+                  onChange={(event) => setOrderScenarioFilter(event.target.value)}
+                >
+                  <option value="">全部场景</option>
+                  <option value="cake">蛋糕</option>
+                  <option value="flower">花店</option>
+                  <option value="repair">维修</option>
+                  <option value="other">其他</option>
+                </select>
+                <select
+                  value={orderStatusFilter}
+                  onChange={(event) => setOrderStatusFilter(event.target.value)}
+                >
+                  <option value="">全部状态</option>
+                  {Object.entries(orderStatusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>订单</th>
+                      <th>场景</th>
+                      <th>会话</th>
+                      <th>状态</th>
+                      <th>更新时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr
+                        className={selectedOrderId === order.id ? "selected" : ""}
+                        key={order.id}
+                        onClick={() => void openOrder(order.id)}
+                      >
+                        <td>#{order.id}</td>
+                        <td>{order.title}</td>
+                        <td>{order.scenario}</td>
+                        <td>{order.conversation_name || order.conversation_id}</td>
+                        <td>
+                          <StatusBadge status={order.status} />
+                        </td>
+                        <td>{formatDate(order.updated_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {orders.length === 0 ? <EmptyState text="没有匹配的订单" /> : null}
+              </div>
+            </div>
+            <OrderDetailPanel detail={selectedOrderDetail} />
           </section>
         ) : null}
 
@@ -468,12 +669,34 @@ export function App() {
               ) : null}
             </div>
             <div className="integration-item">
+              <PlugZap size={20} />
+              <span>智能机器人长连接</span>
+              <strong>{integration.wecom_aibot_ready ? "已配置" : "缺少配置"}</strong>
+              <StatusBadge
+                status={integration.wecom_aibot_ready ? "sent" : "failed"}
+              />
+              {integration.missing_wecom_aibot_config.length ? (
+                <small>{integration.missing_wecom_aibot_config.join(", ")}</small>
+              ) : null}
+            </div>
+            <div className="integration-item">
               <CheckCircle2 size={20} />
               <span>Dify</span>
               <strong>{integration.dify_client_mode}</strong>
               <StatusBadge status={integration.dify_ready ? "sent" : "failed"} />
               {integration.missing_dify_config.length ? (
                 <small>{integration.missing_dify_config.join(", ")}</small>
+              ) : null}
+            </div>
+            <div className="integration-item">
+              <ClipboardList size={20} />
+              <span>订单 Dify</span>
+              <strong>{integration.order_dify_mode}</strong>
+              <StatusBadge
+                status={integration.order_dify_ready ? "sent" : "failed"}
+              />
+              {integration.missing_order_dify_config.length ? (
+                <small>{integration.missing_order_dify_config.join(", ")}</small>
               ) : null}
             </div>
             <div className="integration-item">

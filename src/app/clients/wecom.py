@@ -113,6 +113,7 @@ class AppWeComSender(WeComSender):
                 base_url=self._api_base,
                 timeout=self._timeout_seconds,
                 transport=self._transport,
+                trust_env=False,
             ) as client:
                 if message.group_id.startswith("direct-"):
                     response = client.post(
@@ -183,6 +184,7 @@ class AppWeComSender(WeComSender):
                     base_url=self._api_base,
                     timeout=self._timeout_seconds,
                     transport=self._transport,
+                    trust_env=False,
                 ) as client:
                     response = client.get(
                         "cgi-bin/gettoken",

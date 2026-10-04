@@ -46,6 +46,11 @@ class WeComCrypto:
     def decrypt(self, encrypted: str) -> str:
         try:
             ciphertext = base64.b64decode(encrypted)
+        except Exception as exc:
+            raise WeComCryptoError(
+                f"failed to base64-decode payload: {exc!r}"
+            ) from exc
+        try:
             decryptor = Cipher(
                 algorithms.AES(self._aes_key),
                 modes.CBC(self._aes_key[:16]),
@@ -54,7 +59,10 @@ class WeComCrypto:
             unpadder = PKCS7(128).unpadder()
             plain = unpadder.update(padded) + unpadder.finalize()
         except Exception as exc:
-            raise WeComCryptoError("failed to decrypt callback payload") from exc
+            raise WeComCryptoError(
+                f"failed to decrypt callback payload: {exc!r}; "
+                f"ciphertext_len={len(ciphertext)}; mod16={len(ciphertext) % 16}"
+            ) from exc
 
         if len(plain) < 20:
             raise WeComCryptoError("callback payload is too short")

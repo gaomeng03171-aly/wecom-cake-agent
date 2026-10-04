@@ -29,3 +29,33 @@ class DinnerDifyOutput(BaseModel):
     proposal_choice: int | None = None
     missing_fields: list[str] = Field(default_factory=list)
     reply: str = ""
+
+
+class OrderDifyOutput(BaseModel):
+    intent: Literal[
+        "create_order",
+        "provide_requirement",
+        "update_requirement",
+        "confirm_order",
+        "cancel_order",
+        "unknown",
+    ] = "unknown"
+    scenario: str = "cake"
+    order_title: str | None = None
+    customer_name: str | None = None
+    phone: str | None = None
+    product_name: str | None = None
+    quantity: int | None = None
+    size: str | None = None
+    flavor: str | None = None
+    message_on_cake: str | None = None
+    pickup_time: str | None = None
+    delivery_time: str | None = None
+    delivery_address: str | None = None
+    budget_max: int | None = None
+    notes: str | None = None
+    extra_requirements: dict[str, Any] = Field(default_factory=dict)
+    requirements: dict[str, Any] = Field(default_factory=dict)
+    missing_fields: list[str] = Field(default_factory=list)
+    confirmation_text: str | None = None
+    reply: str = ""

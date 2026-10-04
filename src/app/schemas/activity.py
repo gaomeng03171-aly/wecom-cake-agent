@@ -153,6 +153,10 @@ class AdminInboundMessageOut(BaseModel):
 
 
 class AdminOverviewOut(BaseModel):
+    total_orders: int
+    collecting_orders: int
+    pending_confirmation_orders: int
+    confirmed_orders: int
     total_activities: int
     active_activities: int
     inbound_messages: int
@@ -175,6 +179,9 @@ class AdminActivityDetailOut(BaseModel):
 
 
 class IntegrationStatusOut(BaseModel):
+    order_dify_mode: str
+    order_dify_ready: bool
+    missing_order_dify_config: list[str]
     wecom_sender_mode: str
     wecom_sender_ready: bool
     missing_wecom_sender_config: list[str]

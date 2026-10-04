@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_host: str = "127.0.0.1"
     app_port: int = 8000
+    agent_scenario: str = "order"
     admin_api_key: str = ""
     database_url: str = "sqlite:///./dev.db"
     auto_create_tables: bool = True
@@ -17,6 +18,11 @@ class Settings(BaseSettings):
     dify_api_key: str = ""
     dify_user: str = "wecom-dinner-agent"
     dify_timeout_seconds: float = 30.0
+    order_dify_mode: str = "auto"
+    dify_order_api_base: str = ""
+    dify_order_api_key: str = ""
+    dify_order_user: str = "wecom-order-agent"
+    dify_order_timeout_seconds: float = 30.0
 
     wecom_sender_mode: str = "mock"
     wecom_webhook_url: str = ""
@@ -34,6 +40,7 @@ class Settings(BaseSettings):
     wecom_aibot_ws_url: str = ""
     wecom_aibot_name: str = ""
     wecom_aibot_require_mention: bool = True
+    wecom_owner_user_id: str = ""
 
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30

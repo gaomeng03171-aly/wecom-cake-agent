@@ -6,7 +6,19 @@ export type ActivityStatus =
   | "completed"
   | "cancelled";
 
+export type OrderStatus =
+  | "collecting"
+  | "pending_confirmation"
+  | "confirmed"
+  | "cancelled";
+
+export type OrderScenario = "cake" | "flower" | "repair" | "other";
+
 export interface Overview {
+  total_orders: number;
+  collecting_orders: number;
+  pending_confirmation_orders: number;
+  confirmed_orders: number;
   total_activities: number;
   active_activities: number;
   inbound_messages: number;
@@ -17,6 +29,51 @@ export interface Overview {
   outbox_sent: number;
   outbox_failed: number;
   reminders_pending: number;
+}
+
+export interface Order {
+  id: number;
+  customer_id: number;
+  conversation_id: string;
+  conversation_name: string;
+  scenario: OrderScenario;
+  status: OrderStatus;
+  title: string;
+  requirements: Record<string, unknown>;
+  missing_fields: string[];
+  confirmation_text: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Customer {
+  id: number;
+  channel: string;
+  external_id: string;
+  name: string;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderConfirmation {
+  id: number;
+  order_id: number;
+  confirmation_type: string;
+  confirmation_text: string;
+  requirements_snapshot: Record<string, unknown>;
+  confirmed_by: string;
+  source_message_id: string | null;
+  created_at: string;
+}
+
+export interface OrderDetail {
+  order: Order;
+  customer: Customer;
+  confirmations: OrderConfirmation[];
 }
 
 export interface Activity {
@@ -116,9 +173,14 @@ export interface ActivityDetail {
 }
 
 export interface IntegrationStatus {
+  order_dify_mode: string;
+  order_dify_ready: boolean;
+  missing_order_dify_config: string[];
   wecom_sender_mode: string;
   wecom_sender_ready: boolean;
   missing_wecom_sender_config: string[];
+  wecom_aibot_ready: boolean;
+  missing_wecom_aibot_config: string[];
   wecom_callback_ready: boolean;
   missing_wecom_callback_config: string[];
   wecom_callback_url: string;

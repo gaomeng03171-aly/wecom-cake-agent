@@ -5,6 +5,9 @@ def test_admin_integration_status_reports_callback_readiness(client) -> None:
     payload = response.json()
     assert payload["wecom_sender_mode"] == "mock"
     assert payload["wecom_sender_ready"] is True
+    assert payload["order_dify_mode"] == "mock"
+    assert payload["order_dify_ready"] is True
+    assert payload["missing_order_dify_config"] == []
     assert payload["wecom_callback_ready"] is True
     assert payload["missing_wecom_callback_config"] == []
     assert payload["database_dialect"] == "sqlite"

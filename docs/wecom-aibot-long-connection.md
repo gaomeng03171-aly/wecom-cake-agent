@@ -13,16 +13,20 @@
 
 ```text
 WECOM_SENDER_MODE=aibot_ws
+AGENT_SCENARIO=order
 WECOM_AIBOT_ID=your-bot-id
 WECOM_AIBOT_SECRET=your-bot-secret
 WECOM_AIBOT_WS_URL=
-WECOM_AIBOT_NAME=聚餐助手
+WECOM_AIBOT_NAME=订单助手
 WECOM_AIBOT_REQUIRE_MENTION=true
+WECOM_OWNER_USER_ID=店主的企业微信userid
 ```
 
 `WECOM_AIBOT_WS_URL` 留空时使用 SDK 默认地址。
 
 默认只处理 @ 机器人的消息，避免普通群聊讨论触发回复。联调期间需要让机器人处理所有文本时，可以设置为 `false`。
+
+`AGENT_SCENARIO=order` 时，长连接消息进入订单接待流程；设置为 `dinner` 可切回原聚餐流程。
 
 ## Docker 启动
 
@@ -44,7 +48,7 @@ docker compose logs -f aibot-worker
 docker compose --profile aibot stop aibot-worker
 ```
 
-worker 通过 WebSocket 接收 `message.text` 和 `message.mixed` 帧，转换成现有消息模型后复用 Dify、活动、投票、Outbox 流程，并用同一个回调 frame 回复。
+worker 通过 WebSocket 接收 `message.text` 和 `message.mixed` 帧，转换成现有消息模型后复用 Dify、订单、活动、投票和 Outbox 流程，并用同一个回调 frame 回复。订单确认后，worker 还会向 `WECOM_OWNER_USER_ID` 对应的店主发送订单通知。
 
 ## 本地启动
 

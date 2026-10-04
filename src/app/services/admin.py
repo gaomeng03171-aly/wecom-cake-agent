@@ -4,9 +4,13 @@ from sqlalchemy.orm import Session
 from app.models import (
     ActivityParticipant,
     ActivityStatus,
+    Customer,
     DinnerActivity,
     DinnerProposal,
     InboundMessage,
+    Order,
+    OrderConfirmation,
+    OrderStatus,
     OutboxMessage,
     OutboxStatus,
     Reminder,
@@ -23,6 +27,12 @@ from app.schemas.activity import (
     OutboxMessageOut,
     ReminderOut,
     VoteOut,
+)
+from app.schemas.order import (
+    AdminOrderDetailOut,
+    CustomerOut,
+    OrderConfirmationOut,
+    OrderOut,
 )
 from app.services.outbox import list_outbox_messages
 from app.services.reminders import list_reminders
@@ -42,6 +52,22 @@ def get_overview(db: Session) -> AdminOverviewOut:
         ActivityStatus.VOTING.value,
     ]
     return AdminOverviewOut(
+        total_orders=_count(db, Order),
+        collecting_orders=_count(
+            db,
+            Order,
+            Order.status == OrderStatus.COLLECTING.value,
+        ),
+        pending_confirmation_orders=_count(
+            db,
+            Order,
+            Order.status == OrderStatus.PENDING_CONFIRMATION.value,
+        ),
+        confirmed_orders=_count(
+            db,
+            Order,
+            Order.status == OrderStatus.CONFIRMED.value,
+        ),
         total_activities=_count(db, DinnerActivity),
         active_activities=_count(
             db,
@@ -165,3 +191,53 @@ def list_inbound_messages(
         AdminInboundMessageOut.model_validate(message)
         for message in db.scalars(statement).all()
     ]
+
+
+def list_orders(
+    db: Session,
+    status: OrderStatus | None = None,
+    scenario: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[OrderOut]:
+    statement = select(Order)
+    if status is not None:
+        statement = statement.where(Order.status == status.value)
+    if scenario:
+        statement = statement.where(Order.scenario == scenario)
+    statement = (
+        statement.order_by(Order.created_at.desc(), Order.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return [
+        OrderOut.model_validate(order)
+        for order in db.scalars(statement).all()
+    ]
+
+
+def get_order_detail(
+    db: Session,
+    order_id: int,
+) -> AdminOrderDetailOut | None:
+    order = db.get(Order, order_id)
+    if order is None:
+        return None
+    customer = db.get(Customer, order.customer_id)
+    if customer is None:
+        return None
+    confirmations = list(
+        db.scalars(
+            select(OrderConfirmation)
+            .where(OrderConfirmation.order_id == order_id)
+            .order_by(OrderConfirmation.created_at, OrderConfirmation.id)
+        ).all()
+    )
+    return AdminOrderDetailOut(
+        order=OrderOut.model_validate(order),
+        customer=CustomerOut.model_validate(customer),
+        confirmations=[
+            OrderConfirmationOut.model_validate(confirmation)
+            for confirmation in confirmations
+        ],
+    )

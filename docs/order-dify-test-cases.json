@@ -1,0 +1,78 @@
+[
+  {
+    "name": "complete_cake",
+    "input": "我想订一个8寸草莓蛋糕，明天下午三点取，预算200，写着生日快乐",
+    "expected": {
+      "intent": "create_order",
+      "scenario": "cake",
+      "product_name": "蛋糕",
+      "quantity": 1,
+      "size": "8寸",
+      "flavor": "草莓",
+      "message_on_cake": "生日快乐",
+      "pickup_time": "明天下午三点",
+      "budget_max": 200,
+      "missing_fields": []
+    },
+    "reply_contains": ["请确认订单信息"]
+  },
+  {
+    "name": "missing_size",
+    "input": "我想订一个草莓蛋糕，明天下午三点取",
+    "expected": {
+      "intent": "create_order",
+      "scenario": "cake",
+      "product_name": "蛋糕",
+      "quantity": 1,
+      "size": null,
+      "flavor": "草莓",
+      "pickup_time": "明天下午三点",
+      "missing_fields": ["size"]
+    },
+    "reply_contains": ["尺寸"]
+  },
+  {
+    "name": "provide_pickup_time",
+    "input": "明天下午三点取",
+    "expected": {
+      "intent": "provide_requirement",
+      "scenario": "cake",
+      "pickup_time": "明天下午三点"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "update_flavor",
+    "input": "把口味改成巧克力",
+    "expected": {
+      "intent": "update_requirement",
+      "scenario": "cake",
+      "flavor": "巧克力"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "confirm_order",
+    "input": "确认下单",
+    "expected": {
+      "intent": "confirm_order"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "cancel_order",
+    "input": "取消订单",
+    "expected": {
+      "intent": "cancel_order"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "unknown",
+    "input": "今天天气不错",
+    "expected": {
+      "intent": "unknown"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  }
+]

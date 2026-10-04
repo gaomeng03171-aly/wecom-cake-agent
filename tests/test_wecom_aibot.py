@@ -94,6 +94,7 @@ class FakeAiBotWsClient:
         self.connected = False
         self.disconnected = False
         self.replies = []
+        self.sent_messages = []
 
     def on(self, event: str, handler) -> None:
         self.handlers[event] = handler
@@ -107,6 +108,10 @@ class FakeAiBotWsClient:
     async def reply(self, frame: dict, body: dict) -> dict:
         self.replies.append((frame, body))
         return {"errcode": 0, "errmsg": "ok", "body": {"msgid": "reply-001"}}
+
+    async def send_message(self, chatid: str, body: dict) -> dict:
+        self.sent_messages.append((chatid, body))
+        return {"errcode": 0, "errmsg": "ok", "body": {"msgid": "send-001"}}
 
 
 def test_aibot_worker_processes_group_frame_and_replies(client) -> None:
@@ -195,3 +200,60 @@ def test_aibot_worker_returns_generated_proposal_list(client) -> None:
     reply = ws_client.replies[1][1]["markdown"]["content"]
     assert "1. " in reply
     assert "我选1" in reply
+
+
+def test_aibot_worker_routes_order_scenario_and_notifies_owner(client) -> None:
+    settings = Settings(
+        agent_scenario="order",
+        wecom_aibot_id="BOT_ID",
+        wecom_aibot_name="订单助手",
+        wecom_aibot_require_mention=False,
+        wecom_owner_user_id="owner-001",
+    )
+    ws_client = FakeAiBotWsClient()
+    worker = WeComAiBotLongConnectionWorker(
+        ws_client=ws_client,
+        settings=settings,
+    )
+
+    async def run() -> None:
+        await worker.start()
+        await ws_client.handlers["message.text"](
+            _group_frame(
+                msg_id="order-aibot-001",
+                content="我想订一个8寸草莓蛋糕",
+            )
+        )
+        await _wait_for(lambda: len(ws_client.replies) == 1)
+        await ws_client.handlers["message.text"](
+            _group_frame(
+                msg_id="order-aibot-002",
+                content="明天下午三点取",
+            )
+        )
+        await _wait_for(lambda: len(ws_client.replies) == 2)
+        await ws_client.handlers["message.text"](
+            _group_frame(
+                msg_id="order-aibot-003",
+                content="确认下单",
+            )
+        )
+        await _wait_for(
+            lambda: len(ws_client.replies) == 3
+            and len(ws_client.sent_messages) == 1
+        )
+        await worker.stop()
+
+    asyncio.run(run())
+
+    assert ws_client.sent_messages[0][0] == "owner-001"
+    assert "新订单已确认" in ws_client.sent_messages[0][1]["markdown"]["content"]
+
+
+async def _wait_for(predicate, timeout: float = 3.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return
+        await asyncio.sleep(0.02)
+    raise AssertionError("Timed out waiting for AiBot worker condition")
