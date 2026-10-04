@@ -1,4 +1,4 @@
-# wecom-dinner-agent
+# wecom-cake-agent
 
 当前定位：面向小微商户的企业微信订单接待 Agent，第一个落地场景是蛋糕店订单确认。原聚餐组织流程保留为兼容场景。
 
