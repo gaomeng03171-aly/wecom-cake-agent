@@ -126,6 +126,14 @@ def process_inbound_message(
                 choice_index = analysis.proposal_choice - 1
                 if choice_index < 0 or choice_index >= len(activity_proposals):
                     raise ProposalServiceError("proposal choice is out of range")
+                participant = apply_preferences_from_message(
+                    db,
+                    activity.id,
+                    payload.sender_id,
+                    payload.sender_name,
+                    analysis,
+                    commit=False,
+                )
                 vote = cast_vote(
                     db,
                     activity.id,

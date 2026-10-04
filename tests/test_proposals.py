@@ -259,3 +259,39 @@ def test_summary_and_confirm_commands_return_final_result(client) -> None:
     assert confirmation.json()["activity"]["id"] == activity_id
     assert confirmation.json()["activity"]["status"] == "confirmed"
     assert "最终方案已确认" in confirmation.json()["outbox"]["content"]
+
+
+def test_vote_joins_new_member_before_recording_vote(client) -> None:
+    group_id = "proposal-group-006"
+    _create_activity(client, "wecom-proposal-011", group_id)
+    _add_preference(client, group_id)
+    generate_response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-proposal-012",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-001",
+            "sender_name": "张三",
+            "msg_type": "text",
+            "content": "生成方案",
+        },
+    )
+    first_proposal_id = generate_response.json()["proposals"][0]["id"]
+
+    vote_response = client.post(
+        "/wecom/messages",
+        json={
+            "msg_id": "wecom-vote-006",
+            "group_id": group_id,
+            "group_name": "周末聚餐群",
+            "sender_id": "user-003",
+            "sender_name": "王五",
+            "msg_type": "text",
+            "content": "我选1",
+        },
+    )
+
+    assert vote_response.status_code == 200
+    assert vote_response.json()["vote"]["proposal_id"] == first_proposal_id
+    assert vote_response.json()["participant"]["user_id"] == "user-003"
