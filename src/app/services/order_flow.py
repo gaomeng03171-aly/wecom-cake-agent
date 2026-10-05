@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
@@ -245,6 +246,11 @@ def _owner_notification(
         db,
         f"direct-{settings.wecom_owner_user_id}",
         content,
+        dispatch_channel="active",
+        next_attempt_at=utc_now() + timedelta(
+            seconds=settings.outbox_retry_base_seconds
+        ),
+        max_retries=10,
         commit=commit,
     )
 

@@ -44,6 +44,9 @@ class Settings(BaseSettings):
 
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30
+    outbox_retry_poll_seconds: int = 5
+    outbox_retry_base_seconds: int = 30
+    outbox_retry_max_seconds: int = 300
 
     model_config = SettingsConfigDict(
         env_file=".env",

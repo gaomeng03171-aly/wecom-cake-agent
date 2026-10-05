@@ -1,7 +1,10 @@
-from sqlalchemy import select
+from datetime import datetime, timedelta
+
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.clients.wecom import SendResult, WeComSender, get_wecom_sender
+from app.config import get_settings
 from app.models import OutboxMessage, OutboxStatus, utc_now
 
 
@@ -14,6 +17,9 @@ def enqueue_reply(
     group_id: str,
     content: str,
     activity_id: int | None = None,
+    dispatch_channel: str = "reply",
+    next_attempt_at: datetime | None = None,
+    max_retries: int = 3,
     commit: bool = True,
 ) -> OutboxMessage:
     message = OutboxMessage(
@@ -21,6 +27,9 @@ def enqueue_reply(
         group_id=group_id,
         content=content,
         status=OutboxStatus.PENDING.value,
+        dispatch_channel=dispatch_channel,
+        next_attempt_at=next_attempt_at,
+        max_retries=max_retries,
     )
     db.add(message)
     if commit:
@@ -87,14 +96,19 @@ def apply_send_result(
         message.status = OutboxStatus.SENT.value
         message.provider_message_id = result.provider_message_id
         message.last_error = None
+        message.next_attempt_at = None
         message.sent_at = utc_now()
     else:
         message.retry_count += 1
         message.last_error = result.error or "send failed"
         if message.retry_count >= message.max_retries:
             message.status = OutboxStatus.FAILED.value
+            message.next_attempt_at = None
         else:
             message.status = OutboxStatus.PENDING.value
+            message.next_attempt_at = utc_now() + timedelta(
+                seconds=_retry_delay_seconds(message.retry_count, result.error)
+            )
 
     db.commit()
     db.refresh(message)
@@ -125,6 +139,45 @@ def retry_message(db: Session, message_id: int) -> OutboxMessage:
     message.status = OutboxStatus.PENDING.value
     message.retry_count = 0
     message.last_error = None
+    message.next_attempt_at = None
     db.commit()
     db.refresh(message)
     return dispatch_message(db, message.id)
+
+
+def list_due_active_outbox(
+    db: Session,
+    limit: int = 20,
+) -> list[OutboxMessage]:
+    now = utc_now()
+    return list(
+        db.scalars(
+            select(OutboxMessage)
+            .where(
+                OutboxMessage.status == OutboxStatus.PENDING.value,
+                OutboxMessage.dispatch_channel == "active",
+                or_(
+                    OutboxMessage.next_attempt_at.is_(None),
+                    OutboxMessage.next_attempt_at <= now,
+                ),
+            )
+            .order_by(OutboxMessage.id)
+            .limit(limit)
+        ).all()
+    )
+
+
+def _retry_delay_seconds(
+    retry_count: int,
+    error: str | None,
+) -> int:
+    settings = get_settings()
+    base = settings.outbox_retry_base_seconds
+    is_frequency_limit = bool(
+        error
+        and ("846607" in error or "frequency limit" in error.lower())
+    )
+    if not is_frequency_limit:
+        base = min(base, 10)
+    delay = base * (2 ** max(retry_count - 1, 0))
+    return min(delay, settings.outbox_retry_max_seconds)

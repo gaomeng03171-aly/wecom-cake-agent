@@ -130,6 +130,8 @@ export interface OutboxMessage {
   group_id: string;
   content: string;
   status: "pending" | "sent" | "failed";
+  dispatch_channel: string;
+  next_attempt_at: string | null;
   retry_count: number;
   max_retries: number;
   last_error: string | null;

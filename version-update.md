@@ -8,6 +8,55 @@
 - `1.x`：蛋糕订单 / 小微商户订单接待 Agent，从 `1.0` 开始计数。
 - 原临时使用的 `0.23` 订单内容，统一整理为 `1.0`。
 
+## 1.2 - 2026-10-04
+
+### 版本说明
+
+本版本增加 Outbox 主动消息重试能力，解决企业微信智能机器人主动发送触发 `846607 aibot send msg frequency limit exceeded` 后店主通知无法送达的问题。
+
+### 当前完成内容
+
+1. 扩展 Outbox 发送语义
+   - `dispatch_channel=reply`：必须依赖原始回调 frame 回复
+   - `dispatch_channel=active`：可通过长连接主动 `send_message`
+   - 增加 `next_attempt_at`，记录下一次重试时间
+
+2. 增加失败退避
+   - 频率限制 `846607` 默认 30 秒起退避
+   - 其他发送失败默认 10 秒起退避
+   - 指数退避，最大 300 秒
+   - 达到最大重试次数后标记为 failed
+
+3. 增加 worker 后台重试
+   - worker 启动后周期性扫描待重试的 active Outbox
+   - 等待 WebSocket 认证完成后再启动重试循环
+   - 通过同一条企业微信智能机器人长连接重新发送
+   - 成功后标记 sent
+   - 失败后更新 retry_count、last_error 和 next_attempt_at
+   - 店主通知单独使用最多 10 次重试
+
+4. 数据迁移
+   - 新增 `dispatch_channel`
+   - 新增 `next_attempt_at`
+   - 把历史“新订单已确认”和“客户取消订单”通知回填为 active
+
+### 本次主要变化
+
+- 修改 models.py
+- 修改 schemas/activity.py
+- 修改 services/outbox.py
+- 修改 services/order_flow.py
+- 修改 services/wecom_aibot.py
+- 修改 tests/test_outbox.py
+- 修改 tests/test_wecom_aibot.py
+- 新增 migrations/versions/8d4e5f6a7b8c_add_outbox_retry.py
+
+### 验证结果
+
+- 后端全量测试：`69 passed`
+- Alembic upgrade head 通过
+- Alembic downgrade base 通过
+
 ## 1.1 - 2026-10-04
 
 ### 版本说明

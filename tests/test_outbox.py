@@ -1,6 +1,10 @@
 from app.clients.wecom import SendResult, WeComSender
 from app.db import get_session_factory
-from app.services.outbox import dispatch_message, enqueue_reply
+from app.services.outbox import (
+    apply_send_result,
+    dispatch_message,
+    enqueue_reply,
+)
 
 
 class FailingSender(WeComSender):
@@ -69,3 +73,25 @@ def test_failed_outbox_message_can_be_retried(client) -> None:
     assert retry_response.status_code == 200
     assert retry_response.json()["status"] == "sent"
     assert retry_response.json()["retry_count"] == 0
+
+
+def test_frequency_limit_sets_next_retry_time(client) -> None:
+    with get_session_factory()() as db:
+        message = enqueue_reply(
+            db,
+            group_id="direct-owner-001",
+            content="新订单已确认：蛋糕订单",
+            dispatch_channel="active",
+        )
+        updated = apply_send_result(
+            db,
+            message.id,
+            SendResult(
+                success=False,
+                error="errcode=846607 aibot send msg frequency limit exceeded",
+            ),
+        )
+
+        assert updated.status == "pending"
+        assert updated.retry_count == 1
+        assert updated.next_attempt_at is not None

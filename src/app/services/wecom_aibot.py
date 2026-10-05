@@ -12,7 +12,7 @@ from app.clients.wecom import SendResult
 from app.config import Settings, get_settings
 from app.db import get_session_factory
 from app.schemas.wecom import WeComMessageIn
-from app.services.outbox import apply_send_result
+from app.services.outbox import apply_send_result, list_due_active_outbox
 from app.services.order_flow import process_order_message
 from app.services.processing import process_inbound_message
 
@@ -163,13 +163,34 @@ class WeComAiBotLongConnectionWorker:
         self.normalizer = normalizer or WeComAiBotFrameNormalizer()
         self.settings = settings or get_settings()
         self._tasks: set[asyncio.Task[Any]] = set()
+        self._retry_task: asyncio.Task[Any] | None = None
+        self._authenticated = asyncio.Event()
 
     async def start(self) -> None:
         for event_name in ("message.text", "message.mixed"):
             self.ws_client.on(event_name, self._handle_frame)
+        self.ws_client.on("authenticated", self._mark_authenticated)
         await self.ws_client.connect()
+        try:
+            await asyncio.wait_for(self._authenticated.wait(), timeout=10)
+        except TimeoutError:
+            logger.warning(
+                "AiBot authentication event was not received; "
+                "starting retry loop anyway"
+            )
+        self._authenticated.clear()
+        self._retry_task = asyncio.create_task(
+            self._dispatch_pending_active_outboxes_forever()
+        )
+
+    def _mark_authenticated(self) -> None:
+        self._authenticated.set()
 
     async def stop(self) -> None:
+        if self._retry_task is not None:
+            self._retry_task.cancel()
+            await asyncio.gather(self._retry_task, return_exceptions=True)
+            self._retry_task = None
         tasks = list(self._tasks)
         for task in tasks:
             task.cancel()
@@ -243,6 +264,56 @@ class WeComAiBotLongConnectionWorker:
                 plan.owner_outbox_id,
                 result,
             )
+
+    async def _dispatch_pending_active_outboxes_forever(self) -> None:
+        while True:
+            try:
+                await self._dispatch_pending_active_outboxes_once()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Failed to dispatch pending active outbox messages")
+            await asyncio.sleep(max(self.settings.outbox_retry_poll_seconds, 1))
+
+    async def _dispatch_pending_active_outboxes_once(self) -> int:
+        if getattr(self.ws_client, "send_message", None) is None:
+            return 0
+
+        pending = await asyncio.to_thread(self._load_due_active_outbox)
+        sent_count = 0
+        for outbox_id, target, content in pending:
+            try:
+                raw_response = await self.ws_client.send_message(
+                    target,
+                    {
+                        "msgtype": "markdown",
+                        "markdown": {"content": content},
+                    },
+                )
+                result = _send_result(raw_response)
+            except Exception as exc:
+                result = SendResult(success=False, error=str(exc))
+
+            await asyncio.to_thread(
+                self._record_send_result,
+                outbox_id,
+                result,
+            )
+            if result.success:
+                sent_count += 1
+        return sent_count
+
+    def _load_due_active_outbox(self) -> list[tuple[int, str, str]]:
+        with self.session_factory() as db:
+            messages = list_due_active_outbox(db)
+            return [
+                (
+                    message.id,
+                    _active_target(message.group_id),
+                    message.content,
+                )
+                for message in messages
+            ]
 
     def _process_message(
         self,
@@ -400,3 +471,9 @@ def _frame_text(body: dict[str, Any]) -> str:
         if isinstance(text_item, dict) and text_item.get("content") is not None:
             parts.append(str(text_item["content"]))
     return "".join(parts)
+
+
+def _active_target(group_id: str) -> str:
+    if group_id.startswith("direct-"):
+        return group_id.removeprefix("direct-")
+    return group_id

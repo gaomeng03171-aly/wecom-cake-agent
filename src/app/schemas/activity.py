@@ -93,6 +93,8 @@ class OutboxMessageOut(BaseModel):
     group_id: str
     content: str
     status: OutboxStatus
+    dispatch_channel: str
+    next_attempt_at: datetime | None
     retry_count: int
     max_retries: int
     last_error: str | None

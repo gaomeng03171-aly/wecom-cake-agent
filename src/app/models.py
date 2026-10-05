@@ -162,6 +162,16 @@ class OutboxMessage(Base):
         default=OutboxStatus.PENDING.value,
         index=True,
     )
+    dispatch_channel: Mapped[str] = mapped_column(
+        String(32),
+        default="reply",
+        index=True,
+    )
+    next_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, default=3)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)

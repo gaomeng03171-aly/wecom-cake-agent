@@ -1,7 +1,12 @@
 import asyncio
 import time
 
+from sqlalchemy import select
+
 from app.config import Settings
+from app.db import get_session_factory
+from app.models import OutboxMessage, OutboxStatus
+from app.services.outbox import enqueue_reply
 from app.services.wecom_aibot import (
     WeComAiBotFrameNormalizer,
     WeComAiBotLongConnectionWorker,
@@ -101,6 +106,9 @@ class FakeAiBotWsClient:
 
     async def connect(self) -> None:
         self.connected = True
+        authenticated = self.handlers.get("authenticated")
+        if authenticated is not None:
+            authenticated()
 
     async def disconnect(self) -> None:
         self.disconnected = True
@@ -248,6 +256,44 @@ def test_aibot_worker_routes_order_scenario_and_notifies_owner(client) -> None:
 
     assert ws_client.sent_messages[0][0] == "owner-001"
     assert "新订单已确认" in ws_client.sent_messages[0][1]["markdown"]["content"]
+
+
+def test_aibot_worker_retries_pending_active_outbox(client) -> None:
+    with get_session_factory()() as db:
+        outbox = enqueue_reply(
+            db,
+            group_id="direct-owner-001",
+            content="新订单已确认：蛋糕订单",
+            dispatch_channel="active",
+        )
+        outbox_id = outbox.id
+
+    settings = Settings(
+        wecom_aibot_id="BOT_ID",
+        wecom_aibot_name="订单助手",
+        wecom_aibot_require_mention=False,
+        outbox_retry_poll_seconds=1,
+    )
+    ws_client = FakeAiBotWsClient()
+    worker = WeComAiBotLongConnectionWorker(
+        ws_client=ws_client,
+        settings=settings,
+    )
+
+    async def run() -> None:
+        await worker.start()
+        await _wait_for(lambda: len(ws_client.sent_messages) == 1)
+        await worker.stop()
+
+    asyncio.run(run())
+
+    assert ws_client.sent_messages[0][0] == "owner-001"
+    with get_session_factory()() as db:
+        message = db.scalar(
+            select(OutboxMessage).where(OutboxMessage.id == outbox_id)
+        )
+        assert message is not None
+        assert message.status == OutboxStatus.SENT.value
 
 
 async def _wait_for(predicate, timeout: float = 3.0) -> None:
