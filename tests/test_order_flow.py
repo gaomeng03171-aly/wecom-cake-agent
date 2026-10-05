@@ -67,6 +67,7 @@ def test_order_flow_collects_completes_and_confirms_order(client) -> None:
         assert third.order.status == OrderStatus.CONFIRMED.value
         assert third.owner_notification is not None
         assert third.owner_notification.group_id == "direct-owner-001"
+        assert third.owner_notification.dispatch_channel == "app"
         assert "新订单已确认" in third.owner_notification.content
 
         confirmation = db.scalar(

@@ -145,7 +145,7 @@ def retry_message(db: Session, message_id: int) -> OutboxMessage:
     return dispatch_message(db, message.id)
 
 
-def list_due_active_outbox(
+def list_due_dispatchable_outbox(
     db: Session,
     limit: int = 20,
 ) -> list[OutboxMessage]:
@@ -155,7 +155,9 @@ def list_due_active_outbox(
             select(OutboxMessage)
             .where(
                 OutboxMessage.status == OutboxStatus.PENDING.value,
-                OutboxMessage.dispatch_channel == "active",
+                OutboxMessage.dispatch_channel.in_(
+                    ["active", "app", "webhook"]
+                ),
                 or_(
                     OutboxMessage.next_attempt_at.is_(None),
                     OutboxMessage.next_attempt_at <= now,

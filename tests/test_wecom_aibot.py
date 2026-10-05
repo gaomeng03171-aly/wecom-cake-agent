@@ -3,6 +3,7 @@ import time
 
 from sqlalchemy import select
 
+from app.clients.wecom import SendResult
 from app.config import Settings
 from app.db import get_session_factory
 from app.models import OutboxMessage, OutboxStatus
@@ -217,6 +218,7 @@ def test_aibot_worker_routes_order_scenario_and_notifies_owner(client) -> None:
         wecom_aibot_name="订单助手",
         wecom_aibot_require_mention=False,
         wecom_owner_user_id="owner-001",
+        order_notification_channel="active",
     )
     ws_client = FakeAiBotWsClient()
     worker = WeComAiBotLongConnectionWorker(
@@ -294,6 +296,60 @@ def test_aibot_worker_retries_pending_active_outbox(client) -> None:
         )
         assert message is not None
         assert message.status == OutboxStatus.SENT.value
+
+
+def test_aibot_worker_dispatches_app_channel_outbox(
+    client,
+    monkeypatch,
+) -> None:
+    from app.services import wecom_aibot
+
+    class FakeAppSender:
+        def __init__(self, **kwargs) -> None:
+            self.kwargs = kwargs
+
+        def send(self, message):
+            return SendResult(
+                success=True,
+                provider_message_id="app-msg-001",
+            )
+
+    monkeypatch.setattr(wecom_aibot, "AppWeComSender", FakeAppSender)
+
+    with get_session_factory()() as db:
+        outbox = enqueue_reply(
+            db,
+            group_id="direct-owner-001",
+            content="新订单已确认：蛋糕订单",
+            dispatch_channel="app",
+        )
+        outbox_id = outbox.id
+
+    settings = Settings(
+        wecom_corp_id="corp-001",
+        wecom_app_secret="secret-001",
+        wecom_agent_id="100001",
+        outbox_retry_poll_seconds=1,
+    )
+    worker = WeComAiBotLongConnectionWorker(
+        ws_client=FakeAiBotWsClient(),
+        settings=settings,
+    )
+
+    async def run() -> None:
+        await worker.start()
+        await _wait_for(lambda: _outbox_status(outbox_id) == "sent")
+        await worker.stop()
+
+    asyncio.run(run())
+
+
+def _outbox_status(outbox_id: int) -> str | None:
+    with get_session_factory()() as db:
+        message = db.scalar(
+            select(OutboxMessage).where(OutboxMessage.id == outbox_id)
+        )
+        return message.status if message is not None else None
 
 
 async def _wait_for(predicate, timeout: float = 3.0) -> None:

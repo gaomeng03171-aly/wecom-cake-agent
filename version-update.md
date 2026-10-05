@@ -8,6 +8,45 @@
 - `1.x`：蛋糕订单 / 小微商户订单接待 Agent，从 `1.0` 开始计数。
 - 原临时使用的 `0.23` 订单内容，统一整理为 `1.0`。
 
+## 1.3 - 2026-10-05
+
+### 版本说明
+
+本版本修补订单外部发送策略。企业微信智能机器人主动单聊持续返回 `846607` 时，不再只依赖 aibot active send，而是按可配置通道回退。
+
+### 当前完成内容
+
+1. 增加订单通知通道配置
+   - `ORDER_NOTIFICATION_CHANNEL=auto`
+   - 支持 `app`、`webhook`、`active`
+   - `auto` 优先自建应用 API，其次群 Webhook，最后智能机器人主动单聊
+
+2. 扩展 worker 分发策略
+   - `app` 通过自建应用 `message/send`
+   - `webhook` 通过群机器人 Webhook
+   - `active` 通过智能机器人 `send_message`
+   - `reply` 仍使用原始回调 frame，不进入后台重试
+
+3. 失败通知切换通道
+   - 历史失败通知可以改为 `dispatch_channel=app`
+   - worker 后台重试按通道重新发送
+   - 避免继续被 aibot active send 的 `846607` 卡死
+
+### 本次主要变化
+
+- 修改 config.py 和 .env.example
+- 修改 docker-compose.yml
+- 修改 services/order_flow.py
+- 修改 services/outbox.py
+- 修改 services/wecom_aibot.py
+- 修改 tests/test_order_flow.py
+- 修改 tests/test_wecom_aibot.py
+
+### 验证结果
+
+- 后端全量测试通过
+- worker 通道分发单元测试通过
+
 ## 1.2 - 2026-10-04
 
 ### 版本说明

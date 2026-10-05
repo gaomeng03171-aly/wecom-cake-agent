@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     wecom_aibot_name: str = ""
     wecom_aibot_require_mention: bool = True
     wecom_owner_user_id: str = ""
+    order_notification_channel: str = "auto"
 
     reminder_scheduler_enabled: bool = True
     reminder_poll_seconds: int = 30

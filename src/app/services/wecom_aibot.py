@@ -8,11 +8,20 @@ from typing import Any
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.clients.wecom import SendResult
+from app.clients.wecom import (
+    AppWeComSender,
+    SendResult,
+    WebhookWeComSender,
+)
 from app.config import Settings, get_settings
 from app.db import get_session_factory
 from app.schemas.wecom import WeComMessageIn
-from app.services.outbox import apply_send_result, list_due_active_outbox
+from app.services.outbox import (
+    apply_send_result,
+    dispatch_message,
+    get_outbox_message,
+    list_due_dispatchable_outbox,
+)
 from app.services.order_flow import process_order_message
 from app.services.processing import process_inbound_message
 
@@ -26,6 +35,7 @@ class AiBotDispatchPlan:
     owner_outbox_id: int | None = None
     owner_target: str | None = None
     owner_content: str | None = None
+    owner_dispatch_channel: str | None = None
 
 
 class WeComAiBotFrameNormalizer:
@@ -241,12 +251,25 @@ class WeComAiBotLongConnectionWorker:
             result,
         )
 
+        await self._dispatch_owner_notification(plan)
+
+    async def _dispatch_owner_notification(
+        self,
+        plan: AiBotDispatchPlan,
+    ) -> None:
         if (
-            plan.owner_outbox_id is not None
-            and plan.owner_target
-            and plan.owner_content
-            and getattr(self.ws_client, "send_message", None) is not None
+            plan.owner_outbox_id is None
+            or not plan.owner_dispatch_channel
         ):
+            return
+
+        if plan.owner_dispatch_channel == "active":
+            if (
+                not plan.owner_target
+                or not plan.owner_content
+                or getattr(self.ws_client, "send_message", None) is None
+            ):
+                return
             try:
                 raw_response = await self.ws_client.send_message(
                     plan.owner_target,
@@ -264,6 +287,13 @@ class WeComAiBotLongConnectionWorker:
                 plan.owner_outbox_id,
                 result,
             )
+            return
+
+        await asyncio.to_thread(
+            self._dispatch_http_outbox,
+            plan.owner_outbox_id,
+            plan.owner_dispatch_channel,
+        )
 
     async def _dispatch_pending_active_outboxes_forever(self) -> None:
         while True:
@@ -279,9 +309,19 @@ class WeComAiBotLongConnectionWorker:
         if getattr(self.ws_client, "send_message", None) is None:
             return 0
 
-        pending = await asyncio.to_thread(self._load_due_active_outbox)
+        pending = await asyncio.to_thread(self._load_due_dispatchable_outbox)
         sent_count = 0
-        for outbox_id, target, content in pending:
+        for outbox_id, target, content, channel in pending:
+            if channel != "active":
+                success = await asyncio.to_thread(
+                    self._dispatch_http_outbox,
+                    outbox_id,
+                    channel,
+                )
+                if success:
+                    sent_count += 1
+                continue
+
             try:
                 raw_response = await self.ws_client.send_message(
                     target,
@@ -303,17 +343,57 @@ class WeComAiBotLongConnectionWorker:
                 sent_count += 1
         return sent_count
 
-    def _load_due_active_outbox(self) -> list[tuple[int, str, str]]:
+    def _load_due_dispatchable_outbox(self) -> list[tuple[int, str, str, str]]:
         with self.session_factory() as db:
-            messages = list_due_active_outbox(db)
+            messages = list_due_dispatchable_outbox(db)
             return [
                 (
                     message.id,
                     _active_target(message.group_id),
                     message.content,
+                    message.dispatch_channel,
                 )
                 for message in messages
             ]
+
+    def _dispatch_http_outbox(
+        self,
+        outbox_id: int,
+        channel: str,
+    ) -> bool:
+        with self.session_factory() as db:
+            message = get_outbox_message(db, outbox_id)
+            if message is None:
+                return False
+
+            try:
+                if channel == "app":
+                    sender = AppWeComSender(
+                        corp_id=self.settings.wecom_corp_id,
+                        app_secret=self.settings.wecom_app_secret,
+                        agent_id=self.settings.wecom_agent_id,
+                        api_base=self.settings.wecom_api_base,
+                        timeout_seconds=self.settings.wecom_sender_timeout_seconds,
+                    )
+                elif channel == "webhook":
+                    if not self.settings.wecom_webhook_url:
+                        raise RuntimeError("WECOM_WEBHOOK_URL is required")
+                    sender = WebhookWeComSender(
+                        webhook_url=self.settings.wecom_webhook_url,
+                        timeout_seconds=self.settings.wecom_sender_timeout_seconds,
+                    )
+                else:
+                    return False
+            except Exception as exc:
+                apply_send_result(
+                    db,
+                    outbox_id,
+                    SendResult(success=False, error=str(exc)),
+                )
+                return False
+
+            sent = dispatch_message(db, outbox_id, sender=sender)
+            return sent.status == "sent"
 
     def _process_message(
         self,
@@ -332,9 +412,13 @@ class WeComAiBotLongConnectionWorker:
                 owner_target = None
                 owner_outbox_id = None
                 owner_content = None
+                owner_dispatch_channel = None
                 if result.owner_notification is not None:
                     owner_outbox_id = result.owner_notification.id
                     owner_content = result.owner_notification.content
+                    owner_dispatch_channel = (
+                        result.owner_notification.dispatch_channel
+                    )
                     owner_target = result.owner_notification.group_id
                     if owner_target.startswith("direct-"):
                         owner_target = owner_target.removeprefix("direct-")
@@ -344,6 +428,7 @@ class WeComAiBotLongConnectionWorker:
                     owner_outbox_id=owner_outbox_id,
                     owner_target=owner_target,
                     owner_content=owner_content,
+                    owner_dispatch_channel=owner_dispatch_channel,
                 )
 
             response = process_inbound_message(db, payload, dispatch=False)

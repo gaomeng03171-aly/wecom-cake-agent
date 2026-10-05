@@ -27,7 +27,17 @@ WECOM_AIBOT_ID=
 WECOM_AIBOT_SECRET=
 WECOM_OWNER_USER_ID=店主的企业微信userid
 ORDER_DIFY_MODE=auto
+ORDER_NOTIFICATION_CHANNEL=auto
 ```
+
+订单店主通知通道：
+
+- `app`：调用自建应用 `message/send`
+- `webhook`：调用群机器人 Webhook
+- `active`：调用智能机器人主动 `send_message`
+- `auto`：优先 app，其次 webhook，最后 active
+
+如果 `app` 返回 `60020`，需要把出口 IP 加入企业可信 IP；如果 `active` 返回 `846607`，说明智能机器人主动发送频率或额度受限，建议切换 Webhook。
 
 ## 2. 本地回调验证
 

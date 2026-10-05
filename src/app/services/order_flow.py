@@ -242,17 +242,33 @@ def _owner_notification(
         order.requirements,
         order.scenario,
     )
+    dispatch_channel = _owner_notification_channel(settings)
     return enqueue_reply(
         db,
         f"direct-{settings.wecom_owner_user_id}",
         content,
-        dispatch_channel="active",
+        dispatch_channel=dispatch_channel,
         next_attempt_at=utc_now() + timedelta(
             seconds=settings.outbox_retry_base_seconds
         ),
         max_retries=10,
         commit=commit,
     )
+
+
+def _owner_notification_channel(settings: Settings) -> str:
+    configured = settings.order_notification_channel.strip().lower()
+    if configured in {"app", "webhook", "active"}:
+        return configured
+    if (
+        settings.wecom_corp_id
+        and settings.wecom_app_secret
+        and settings.wecom_agent_id
+    ):
+        return "app"
+    if settings.wecom_webhook_url:
+        return "webhook"
+    return "active"
 
 
 def _finish(

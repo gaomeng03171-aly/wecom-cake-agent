@@ -88,9 +88,17 @@ Invoke-RestMethod -Method Post `
 ```text
 AGENT_SCENARIO=order
 WECOM_OWNER_USER_ID=店主的企业微信userid
+ORDER_NOTIFICATION_CHANNEL=auto
 ```
 
 订单字段完整后，机器人会生成确认文本；客户确认后写入 `orders` 和 `order_confirmations`，并创建一条发送给店主的 Outbox 消息。
+
+店主通知通道：
+
+- `auto`：优先自建应用 API，其次群 Webhook，最后智能机器人主动单聊
+- `app`：自建应用 `message/send`
+- `webhook`：群机器人 Webhook
+- `active`：智能机器人主动 `send_message`
 
 订单 Dify 支持三种模式：
 
