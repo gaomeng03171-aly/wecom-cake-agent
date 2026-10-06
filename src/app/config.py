@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_host: str = "127.0.0.1"
     app_port: int = 8000
+    app_timezone: str = "Asia/Hong_Kong"
     agent_scenario: str = "order"
     admin_api_key: str = ""
     database_url: str = "sqlite:///./dev.db"

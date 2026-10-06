@@ -20,12 +20,14 @@ def test_mock_order_extracts_complete_cake_order() -> None:
     assert analysis.requirements["quantity"] == 1
     assert analysis.requirements["size"] == "8寸"
     assert analysis.requirements["flavor"] == "草莓"
-    assert analysis.requirements["pickup_time"] == "明天下午三点"
+    assert analysis.requirements["pickup_time"].startswith("(")
+    assert analysis.requirements["pickup_time"].endswith("明天下午三点")
     assert analysis.requirements["budget_max"] == 200
     assert analysis.requirements["message_on_cake"] == "生日快乐"
     assert analysis.missing_fields == []
     assert analysis.confirmation_text is not None
     assert "请确认订单信息" in analysis.reply
+    assert "蛋糕留言或备注" in analysis.reply
 
 
 def test_mock_order_generates_follow_up_for_missing_fields() -> None:

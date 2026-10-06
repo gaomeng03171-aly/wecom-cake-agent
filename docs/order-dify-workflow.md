@@ -88,6 +88,7 @@ content
 
 字段规则：
 - 蛋糕订单必须识别 customer_name 和 phone，缺失时本地会继续追问
+- 取货/配送时间保留原始表达，本地会补充 `(月.日)` 日期
 - scenario 固定优先返回 cake
 - quantity 必须是整数
 - budget_max 必须是整数

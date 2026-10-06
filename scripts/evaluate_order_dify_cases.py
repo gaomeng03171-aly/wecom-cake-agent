@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -43,15 +44,26 @@ def compare_case(
     failures: list[str] = []
     expected = case["expected"]
     ignored_fields = set(case.get("ignore_fields", []))
+    regex_fields = case.get("regex_fields", {})
 
     for field in COMPARABLE_FIELDS:
         if field not in expected or field in ignored_fields:
+            continue
+        if field in regex_fields:
             continue
         actual_value = outputs.get(field)
         expected_value = expected[field]
         if normalize(actual_value) != normalize(expected_value):
             failures.append(
                 f"{field}: expected={expected_value!r}, actual={actual_value!r}"
+            )
+
+    for field, pattern in regex_fields.items():
+        actual_value = str(outputs.get(field) or "")
+        if not re.search(pattern, actual_value):
+            failures.append(
+                f"{field}: expected pattern={pattern!r}, "
+                f"actual={actual_value!r}"
             )
 
     if "missing_fields" not in ignored_fields:

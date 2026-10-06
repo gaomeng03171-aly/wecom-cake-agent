@@ -455,6 +455,11 @@ class WeComAiBotLongConnectionWorker:
         body = frame.get("body")
         if not isinstance(body, dict):
             return False
+        chat_type = str(
+            body.get("chattype") or body.get("chat_type") or ""
+        ).lower()
+        if chat_type in {"1", "single", "direct"}:
+            return True
 
         mentioned = _mention_values(body.get("mentioned_users"))
         mentioned.update(_mention_values(body.get("mentions")))

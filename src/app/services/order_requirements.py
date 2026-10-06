@@ -1,5 +1,8 @@
+from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
+from app.config import get_settings
 from app.schemas.dify import OrderDifyOutput
 
 
@@ -134,6 +137,12 @@ def format_order_confirmation(
     lines = ["请确认订单信息："]
     lines.extend(_format_requirement_lines(requirements))
     lines.append("")
+    if not requirements.get("message_on_cake") or not requirements.get("notes"):
+        lines.append(
+            "是否需要补充蛋糕留言或备注？有的话请补充，"
+            "没有可以回复“没有”。"
+        )
+        lines.append("")
     lines.append("回复“确认下单”后，我会把订单提交给店主。")
     return "\n".join(lines)
 
@@ -173,3 +182,67 @@ def _field_is_present(field: str, requirements: dict[str, Any]) -> bool:
 
 def _label(field: str) -> str:
     return FIELD_LABELS.get(field, field)
+
+
+def annotate_relative_times(
+    requirements: dict[str, Any],
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    current = now or datetime.now(
+        ZoneInfo(get_settings().app_timezone)
+    )
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=ZoneInfo(get_settings().app_timezone))
+
+    for field in ("pickup_time", "delivery_time"):
+        value = requirements.get(field)
+        if isinstance(value, str) and value:
+            requirements[field] = annotate_relative_time(value, current)
+    return requirements
+
+
+def annotate_relative_time(value: str, now: datetime) -> str:
+    cleaned = value.strip()
+    if cleaned.startswith("(") and ")" in cleaned:
+        return cleaned
+
+    day_offsets = {
+        "今天": 0,
+        "明天": 1,
+        "后天": 2,
+        "大后天": 3,
+    }
+    for prefix, offset in day_offsets.items():
+        if cleaned.startswith(prefix):
+            target = now + timedelta(days=offset)
+            return f"({target.month}.{target.day}){cleaned}"
+
+    weekday_match = cleaned[:1] == "周" and cleaned[1:2] in {
+        "一",
+        "二",
+        "三",
+        "四",
+        "五",
+        "六",
+        "日",
+        "天",
+    }
+    if weekday_match:
+        weekday_text = cleaned[1]
+        weekday_index = {
+            "一": 0,
+            "二": 1,
+            "三": 2,
+            "四": 3,
+            "五": 4,
+            "六": 5,
+            "日": 6,
+            "天": 6,
+        }[weekday_text]
+        delta = (weekday_index - now.weekday()) % 7
+        if delta == 0:
+            delta = 7
+        target = now + timedelta(days=delta)
+        return f"({target.month}.{target.day}){cleaned}"
+
+    return cleaned

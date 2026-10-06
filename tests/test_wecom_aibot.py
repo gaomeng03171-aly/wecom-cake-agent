@@ -94,6 +94,23 @@ def test_aibot_worker_requires_mention_when_bot_is_configured() -> None:
     assert worker._should_process(frame) is True
 
 
+def test_aibot_worker_allows_single_chat_without_mention() -> None:
+    settings = Settings(
+        wecom_aibot_id="BOT_ID",
+        wecom_aibot_name="订单助手",
+        wecom_aibot_require_mention=True,
+    )
+    worker = WeComAiBotLongConnectionWorker(
+        ws_client=FakeAiBotWsClient(),
+        settings=settings,
+    )
+    frame = _group_frame()
+    frame["body"]["chattype"] = "single"
+    frame["body"].pop("chatid", None)
+
+    assert worker._should_process(frame) is True
+
+
 class FakeAiBotWsClient:
     def __init__(self) -> None:
         self.handlers = {}

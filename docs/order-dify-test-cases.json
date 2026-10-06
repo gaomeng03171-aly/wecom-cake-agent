@@ -16,6 +16,9 @@
       "budget_max": 200,
       "missing_fields": []
     },
+    "regex_fields": {
+      "pickup_time": "^\\(\\d{1,2}\\.\\d{1,2}\\)明天下午三点$"
+    },
     "reply_contains": ["请确认订单信息"]
   },
   {
@@ -33,6 +36,9 @@
       "pickup_time": "明天下午三点",
       "missing_fields": ["size"]
     },
+    "regex_fields": {
+      "pickup_time": "^\\(\\d{1,2}\\.\\d{1,2}\\)明天下午三点$"
+    },
     "reply_contains": ["尺寸"]
   },
   {
@@ -43,7 +49,10 @@
       "scenario": "cake",
       "pickup_time": "明天下午三点"
     },
-    "ignore_fields": ["missing_fields", "reply"]
+    "ignore_fields": ["missing_fields", "reply"],
+    "regex_fields": {
+      "pickup_time": "^\\(\\d{1,2}\\.\\d{1,2}\\)明天下午三点$"
+    }
   },
   {
     "name": "update_flavor",
