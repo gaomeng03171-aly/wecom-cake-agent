@@ -28,7 +28,7 @@ def test_order_flow_collects_completes_and_confirms_order(client) -> None:
             db,
             _message(
                 "order-flow-001",
-                "我想订一个8寸草莓蛋糕",
+                "我叫张三，电话13800138000，我想订一个8寸草莓蛋糕",
             ),
         )
         assert first.error is None

@@ -33,6 +33,8 @@ FIELD_QUESTIONS: dict[str, str] = {
 
 SCENARIO_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "cake": (
+        "customer_name",
+        "phone",
         "product_name",
         "quantity",
         "size",

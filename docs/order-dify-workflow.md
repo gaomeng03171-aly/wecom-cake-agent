@@ -87,6 +87,7 @@ content
 - unknown：无法判断
 
 字段规则：
+- 蛋糕订单必须识别 customer_name 和 phone，缺失时本地会继续追问
 - scenario 固定优先返回 cake
 - quantity 必须是整数
 - budget_max 必须是整数

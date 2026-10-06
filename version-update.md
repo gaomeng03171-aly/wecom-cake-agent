@@ -8,6 +8,44 @@
 - `1.x`：蛋糕订单 / 小微商户订单接待 Agent，从 `1.0` 开始计数。
 - 原临时使用的 `0.23` 订单内容，统一整理为 `1.0`。
 
+## 1.4 - 2026-10-05
+
+### 版本说明
+
+本版本把客户姓名和联系电话提升为蛋糕订单必填字段，避免订单确认后无法联系客户。
+
+### 当前完成内容
+
+1. 扩展蛋糕订单必填字段
+   - customer_name
+   - phone
+   - product_name
+   - quantity
+   - size
+   - flavor
+   - pickup_time
+
+2. 完善 mock 字段抽取
+   - 支持“我叫张三”
+   - 支持“姓名是张三”
+   - 支持“我是张三”
+   - 支持 11 位手机号
+
+3. 完善追问和确认文本
+   - 缺少姓名时询问客户姓名
+   - 缺少电话时询问联系电话
+   - 确认文本包含客户姓名和电话
+
+### 本次主要变化
+
+- 修改 services/order_requirements.py
+- 修改 clients/dify.py
+- 修改 tests/test_order_dify_mock.py
+- 修改 tests/test_order_flow.py
+- 修改 tests/test_wecom_aibot.py
+- 修改 docs/order-dify-test-cases.json
+- 修改 docs/order-dify-workflow.md
+
 ## 1.3 - 2026-10-05
 
 ### 版本说明

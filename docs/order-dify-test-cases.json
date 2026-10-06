@@ -1,10 +1,12 @@
 [
   {
     "name": "complete_cake",
-    "input": "我想订一个8寸草莓蛋糕，明天下午三点取，预算200，写着生日快乐",
+    "input": "我叫张三，电话13800138000，我想订一个8寸草莓蛋糕，明天下午三点取，预算200，写着生日快乐",
     "expected": {
       "intent": "create_order",
       "scenario": "cake",
+      "customer_name": "张三",
+      "phone": "13800138000",
       "product_name": "蛋糕",
       "quantity": 1,
       "size": "8寸",
@@ -18,10 +20,12 @@
   },
   {
     "name": "missing_size",
-    "input": "我想订一个草莓蛋糕，明天下午三点取",
+    "input": "我叫张三，电话13800138000，我想订一个草莓蛋糕，明天下午三点取",
     "expected": {
       "intent": "create_order",
       "scenario": "cake",
+      "customer_name": "张三",
+      "phone": "13800138000",
       "product_name": "蛋糕",
       "quantity": 1,
       "size": null,

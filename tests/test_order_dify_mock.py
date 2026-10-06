@@ -8,11 +8,14 @@ def test_order_dify_defaults_to_mock_client() -> None:
 
 def test_mock_order_extracts_complete_cake_order() -> None:
     analysis = analyze_order_message(
-        "我想订一个8寸草莓蛋糕，明天下午三点取，预算200，写着生日快乐"
+        "我叫张三，电话13800138000，我想订一个8寸草莓蛋糕，"
+        "明天下午三点取，预算200，写着生日快乐"
     )
 
     assert analysis.intent == "create_order"
     assert analysis.scenario == "cake"
+    assert analysis.requirements["customer_name"] == "张三"
+    assert analysis.requirements["phone"] == "13800138000"
     assert analysis.requirements["product_name"] == "蛋糕"
     assert analysis.requirements["quantity"] == 1
     assert analysis.requirements["size"] == "8寸"
@@ -31,6 +34,8 @@ def test_mock_order_generates_follow_up_for_missing_fields() -> None:
     assert analysis.intent == "create_order"
     assert analysis.requirements["product_name"] == "蛋糕"
     assert analysis.requirements["quantity"] == 1
+    assert "customer_name" in analysis.missing_fields
+    assert "phone" in analysis.missing_fields
     assert "size" in analysis.missing_fields
     assert "flavor" in analysis.missing_fields
     assert "pickup_time" in analysis.missing_fields

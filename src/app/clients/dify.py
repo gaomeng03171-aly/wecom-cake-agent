@@ -90,6 +90,7 @@ class MockDifyClient(DifyClient):
     def _run_order(self, inputs: dict[str, Any]) -> DifyWorkflowResult:
         content = str(inputs.get("content", ""))
         intent = self._order_intent(content)
+        customer_name = self._extract_customer_name(content)
         product_name = self._extract_order_product(content)
         quantity = self._extract_order_quantity(content)
         size = self._extract_order_size(content)
@@ -112,6 +113,7 @@ class MockDifyClient(DifyClient):
                 "intent": intent,
                 "scenario": "cake",
                 "order_title": "蛋糕订单",
+                "customer_name": customer_name,
                 "product_name": product_name,
                 "quantity": quantity,
                 "size": size,
@@ -221,6 +223,15 @@ class MockDifyClient(DifyClient):
     def _extract_phone(self, content: str) -> str | None:
         match = re.search(r"1[3-9]\d{9}", content)
         return match.group(0) if match else None
+
+    def _extract_customer_name(self, content: str) -> str | None:
+        match = re.search(
+            r"(?:我叫|姓名是|名字是|我是)\s*([一-龥A-Za-z][一-龥A-Za-z0-9]{1,15})",
+            content,
+        )
+        if match:
+            return match.group(1).strip()
+        return None
 
     def _extract_order_notes(self, content: str) -> str | None:
         for keyword in ("不要香菜", "不要辣", "少糖", "无糖", "不需要蜡烛"):

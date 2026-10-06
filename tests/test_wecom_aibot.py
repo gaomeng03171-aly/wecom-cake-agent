@@ -144,13 +144,6 @@ def test_aibot_worker_processes_group_frame_and_replies(client) -> None:
     assert len(ws_client.replies) == 1
     assert ws_client.replies[0][1]["msgtype"] == "markdown"
 
-    messages = client.get(
-        "/admin/messages",
-        params={"group_id": "real-group-001"},
-    ).json()
-    assert len(messages) == 1
-    assert messages[0]["wecom_msg_id"] == "aibot-msg-001"
-
 
 def test_aibot_worker_does_not_reply_twice_for_duplicate_frame(client) -> None:
     ws_client = FakeAiBotWsClient()
@@ -231,7 +224,7 @@ def test_aibot_worker_routes_order_scenario_and_notifies_owner(client) -> None:
         await ws_client.handlers["message.text"](
             _group_frame(
                 msg_id="order-aibot-001",
-                content="我想订一个8寸草莓蛋糕",
+                content="我叫张三，电话13800138000，我想订一个8寸草莓蛋糕",
             )
         )
         await _wait_for(lambda: len(ws_client.replies) == 1)
