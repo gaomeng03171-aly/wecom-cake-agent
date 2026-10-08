@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wecom-cake-agent"
-version = "1.5.0"
-description = "A WeCom group dinner organizer agent for learning agent project development."
+version = "1.6.0"
+description = "A WeCom order intake agent for small food and service merchants."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

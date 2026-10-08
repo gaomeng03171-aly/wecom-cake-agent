@@ -136,7 +136,7 @@ def test_order_rejects_invalid_transitions(client) -> None:
         )
 
         with pytest.raises(OrderServiceError, match="cannot transition"):
-            transition_order_status(order, OrderStatus.CANCELLED)
+            transition_order_status(order, OrderStatus.READY)
 
 
 def test_customer_is_reused_by_channel_and_external_id(client) -> None:

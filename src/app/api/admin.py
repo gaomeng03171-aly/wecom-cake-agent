@@ -13,14 +13,25 @@ from app.schemas.activity import (
     DinnerActivityOut,
     IntegrationStatusOut,
 )
-from app.schemas.order import AdminOrderDetailOut, OrderOut
+from app.schemas.order import (
+    AdminOrderDetailOut,
+    OrderOut,
+    OwnerMessageIn,
+    OwnerQuoteIn,
+)
 from app.services.admin import (
+    AdminOrderActionError,
     get_activity_detail,
     get_order_detail,
     get_overview,
     list_activities,
     list_inbound_messages,
     list_orders,
+    mark_order_completed,
+    mark_order_ready,
+    mark_order_deposit_paid,
+    send_owner_message,
+    submit_owner_quote,
 )
 from app.services.integration_status import get_integration_status
 
@@ -138,6 +149,103 @@ def admin_order_detail(
     order_id: int,
     db: Session = Depends(get_db),
 ) -> AdminOrderDetailOut:
+    detail = get_order_detail(db, order_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="order not found")
+    return detail
+
+
+@router.post(
+    "/orders/{order_id}/quote",
+    response_model=AdminOrderDetailOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_submit_order_quote(
+    order_id: int,
+    payload: OwnerQuoteIn,
+    db: Session = Depends(get_db),
+) -> AdminOrderDetailOut:
+    try:
+        submit_owner_quote(db, order_id, payload)
+    except AdminOrderActionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    detail = get_order_detail(db, order_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="order not found")
+    return detail
+
+
+@router.post(
+    "/orders/{order_id}/deposit-paid",
+    response_model=AdminOrderDetailOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_mark_deposit_paid(
+    order_id: int,
+    db: Session = Depends(get_db),
+) -> AdminOrderDetailOut:
+    try:
+        mark_order_deposit_paid(db, order_id)
+    except AdminOrderActionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    detail = get_order_detail(db, order_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="order not found")
+    return detail
+
+
+@router.post(
+    "/orders/{order_id}/ready",
+    response_model=AdminOrderDetailOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_mark_order_ready(
+    order_id: int,
+    db: Session = Depends(get_db),
+) -> AdminOrderDetailOut:
+    try:
+        mark_order_ready(db, order_id)
+    except AdminOrderActionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    detail = get_order_detail(db, order_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="order not found")
+    return detail
+
+
+@router.post(
+    "/orders/{order_id}/completed",
+    response_model=AdminOrderDetailOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_mark_order_completed(
+    order_id: int,
+    db: Session = Depends(get_db),
+) -> AdminOrderDetailOut:
+    try:
+        mark_order_completed(db, order_id)
+    except AdminOrderActionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    detail = get_order_detail(db, order_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="order not found")
+    return detail
+
+
+@router.post(
+    "/orders/{order_id}/message",
+    response_model=AdminOrderDetailOut,
+    dependencies=[Depends(require_admin_key)],
+)
+def admin_send_owner_message(
+    order_id: int,
+    payload: OwnerMessageIn,
+    db: Session = Depends(get_db),
+) -> AdminOrderDetailOut:
+    try:
+        send_owner_message(db, order_id, payload)
+    except AdminOrderActionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     detail = get_order_detail(db, order_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="order not found")

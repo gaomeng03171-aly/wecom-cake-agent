@@ -190,7 +190,8 @@ def process_inbound_message(
         commit=False,
     )
     db.commit()
-    db.refresh(outbox)
+    if outbox.id is None:
+        db.refresh(outbox)
     if dispatch:
         outbox = dispatch_message(db, outbox.id)
 

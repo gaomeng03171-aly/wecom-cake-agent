@@ -5,13 +5,22 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml ./
+
+# Cache third-party dependencies before copying frequently changing source.
+RUN touch README.md \
+    && mkdir -p src/app \
+    && touch src/app/__init__.py \
+    && pip install --no-cache-dir . \
+    && rm -rf src
+
 COPY src ./src
+COPY README.md ./
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY scripts ./scripts
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir --no-deps .
 
 EXPOSE 8000
 

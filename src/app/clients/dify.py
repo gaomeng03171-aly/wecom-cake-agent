@@ -93,6 +93,7 @@ class MockDifyClient(DifyClient):
         customer_name = self._extract_customer_name(content)
         product_name = self._extract_order_product(content)
         quantity = self._extract_order_quantity(content)
+        pieces_per_box = self._extract_pieces_per_box(content)
         size = self._extract_order_size(content)
         flavor = self._extract_order_flavor(content)
         message_on_cake = self._extract_cake_message(content)
@@ -100,6 +101,7 @@ class MockDifyClient(DifyClient):
         delivery_address = self._extract_delivery_address(content)
         phone = self._extract_phone(content)
         budget_max = self._extract_budget(content)
+        customer_expected_price = self._extract_expected_price(content)
         notes = self._extract_order_notes(content)
 
         reply = (
@@ -124,7 +126,18 @@ class MockDifyClient(DifyClient):
                 "delivery_address": delivery_address,
                 "phone": phone,
                 "budget_max": budget_max,
+                "customer_expected_price": customer_expected_price,
+                "customer_expected_price_text": (
+                    f"{budget_max}元"
+                    if budget_max is not None
+                    else None
+                ),
                 "notes": notes,
+                "extra_requirements": (
+                    {"pieces_per_box": pieces_per_box}
+                    if pieces_per_box is not None
+                    else {}
+                ),
                 "missing_fields": [],
                 "reply": reply,
             },
@@ -135,6 +148,21 @@ class MockDifyClient(DifyClient):
             return "cancel_order"
         if any(
             keyword in content
+            for keyword in ("确认报价", "接受报价", "同意报价", "价格可以", "这个价格可以")
+        ):
+            return "confirm_quote"
+        if any(
+            keyword in content
+            for keyword in ("不接受", "拒绝报价", "价格不行", "太贵", "不划算")
+        ):
+            return "reject_quote"
+        if any(
+            keyword in content
+            for keyword in ("便宜点", "优惠", "折扣", "降价", "能不能少")
+        ):
+            return "reject_quote"
+        if any(
+            keyword in content
             for keyword in ("确认下单", "确认订单", "就这个", "可以下单")
         ):
             return "confirm_order"
@@ -142,7 +170,17 @@ class MockDifyClient(DifyClient):
             return "update_requirement"
         if any(
             keyword in content
-            for keyword in ("下单", "预订", "我想订", "订一个", "做个", "做一个")
+            for keyword in (
+                "下单",
+                "预订",
+                "我想订",
+                "订一个",
+                "做个",
+                "做一个",
+                "我要买",
+                "买一个",
+                "买一盒",
+            )
         ):
             return "create_order"
         if any(
@@ -170,9 +208,23 @@ class MockDifyClient(DifyClient):
             return "维修服务"
         return None
 
+    def _extract_expected_price(self, content: str) -> float | None:
+        budget = self._extract_budget(content)
+        return float(budget) if budget is not None else None
+
     def _extract_order_quantity(self, content: str) -> int | None:
         match = re.search(
             r"([一二两三四五六七八九十\d]+)\s*(?:个|份|盒|束|台|只)",
+            content,
+        )
+        if match:
+            return _parse_chinese_number(match.group(1))
+        return None
+
+    def _extract_pieces_per_box(self, content: str) -> int | None:
+        match = re.search(
+            r"(?:一盒|一套|每盒|每套).{0,8}?"
+            r"([一二两三四五六七八九十\d]+)\s*(?:个|只|件)",
             content,
         )
         if match:
@@ -187,7 +239,16 @@ class MockDifyClient(DifyClient):
         return None
 
     def _extract_order_flavor(self, content: str) -> str | None:
-        flavors = ("草莓", "巧克力", "芒果", "榴莲", "抹茶", "芋泥", "奶油")
+        flavors = (
+            "红丝绒",
+            "草莓",
+            "巧克力",
+            "芒果",
+            "榴莲",
+            "抹茶",
+            "芋泥",
+            "奶油",
+        )
         for flavor in flavors:
             if flavor in content:
                 return flavor
@@ -204,7 +265,8 @@ class MockDifyClient(DifyClient):
         content: str,
     ) -> tuple[str | None, str | None]:
         time_match = re.search(
-            r"((?:今天|明天|后天|周[一二三四五六日天]).{0,6}?"
+            r"((?:(?:今天|明天|后天|周[一二三四五六日天])|"
+            r"(?:[0-9一二两三四五六七八九十]+天(?:后|以后))).{0,6}?"
             r"(?:上午|中午|下午|晚上)?\s*[一二两三四五六七八九十\d]{1,3}"
             r"(?:点|:\d{2})?)",
             content,

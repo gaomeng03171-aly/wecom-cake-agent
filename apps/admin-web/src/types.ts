@@ -10,7 +10,25 @@ export type OrderStatus =
   | "collecting"
   | "pending_confirmation"
   | "confirmed"
+  | "preparing"
+  | "ready"
+  | "completed"
   | "cancelled";
+
+export type QuoteStatus =
+  | "pending_owner"
+  | "pending_customer"
+  | "approved"
+  | "rejected"
+  | "superseded";
+
+export type PaymentStatus =
+  | "not_required"
+  | "unpaid"
+  | "deposit_pending"
+  | "deposit_paid"
+  | "paid"
+  | "refunded";
 
 export type OrderScenario = "cake" | "flower" | "repair" | "other";
 
@@ -19,6 +37,12 @@ export interface Overview {
   collecting_orders: number;
   pending_confirmation_orders: number;
   confirmed_orders: number;
+  pending_owner_quotes: number;
+  pending_customer_quotes: number;
+  deposit_pending_orders: number;
+  preparing_orders: number;
+  ready_orders: number;
+  completed_today: number;
   total_activities: number;
   active_activities: number;
   inbound_messages: number;
@@ -33,16 +57,29 @@ export interface Overview {
 
 export interface Order {
   id: number;
+  order_number: number | null;
+  business_date: string | null;
   customer_id: number;
   conversation_id: string;
   conversation_name: string;
   scenario: OrderScenario;
   status: OrderStatus;
+  quote_status: QuoteStatus;
+  payment_status: PaymentStatus;
   title: string;
+  customer_expected_price: string | null;
+  customer_expected_price_text: string | null;
+  quoted_total: string | null;
+  deposit_required: boolean;
+  deposit_amount: string | null;
+  scheduled_at: string | null;
   requirements: Record<string, unknown>;
   missing_fields: string[];
   confirmation_text: string | null;
   confirmed_at: string | null;
+  preparing_at: string | null;
+  ready_at: string | null;
+  completed_at: string | null;
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
@@ -70,10 +107,22 @@ export interface OrderConfirmation {
   created_at: string;
 }
 
+export interface OrderQuote {
+  id: number;
+  order_id: number;
+  version: number;
+  source: "customer" | "owner";
+  amount: string;
+  status: QuoteStatus;
+  note: string | null;
+  created_at: string;
+}
+
 export interface OrderDetail {
   order: Order;
   customer: Customer;
   confirmations: OrderConfirmation[];
+  quotes: OrderQuote[];
 }
 
 export interface Activity {

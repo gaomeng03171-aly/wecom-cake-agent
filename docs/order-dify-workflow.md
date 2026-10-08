@@ -48,6 +48,10 @@ content
   "delivery_time": null,
   "delivery_address": null,
   "budget_max": 200,
+  "customer_expected_price": 200,
+  "customer_expected_price_text": "200元",
+  "order_reference": null,
+  "customer_note": null,
   "notes": null,
   "extra_requirements": {},
   "missing_fields": [],
@@ -61,6 +65,8 @@ content
 - `provide_requirement`
 - `update_requirement`
 - `confirm_order`
+- `confirm_quote`
+- `reject_quote`
 - `cancel_order`
 - `unknown`
 
@@ -83,17 +89,27 @@ content
 - provide_requirement：补充商品、数量、尺寸、口味、时间、地址等
 - update_requirement：修改已有要求
 - confirm_order：确认下单
+- confirm_quote：确认店主报价
+- reject_quote：不接受店主报价，需要重新报价
 - cancel_order：取消订单
 - unknown：无法判断
 
 字段规则：
 - 蛋糕订单必须识别 customer_name 和 phone，缺失时本地会继续追问
 - 取货/配送时间保留原始表达，本地会补充 `(月.日)` 日期
+- 支持 `今天/明天/后天/大后天`、`周X` 和 `X天后` 等相对时间
 - scenario 固定优先返回 cake
 - quantity 必须是整数
 - budget_max 必须是整数
+- customer_expected_price 是客户的预算或预期价格，使用数字
+- customer_expected_price_text 保留客户原始价格表达
+- order_reference 是客户指定的订单号，如 `0006` 或 `10.07-0006`
+- customer_note 是客户在报价沟通中的备注或留言
+- 客户表达“太贵”“好贵”“便宜点”“优惠”“折扣”等议价内容时，
+  应返回 `reject_quote`，不要返回 `cancel_order`
 - 没有提供的字段使用 null
 - extra_requirements 使用对象
+- `pieces_per_box` 表示一套/一盒中的数量，本地会转换为“规格：一套四个”
 - missing_fields 使用数组
 
 输出字段：
@@ -112,6 +128,10 @@ content
   "delivery_time": null,
   "delivery_address": null,
   "budget_max": 200,
+  "customer_expected_price": 200,
+  "customer_expected_price_text": "200元",
+  "order_reference": null,
+  "customer_note": null,
   "notes": null,
   "extra_requirements": {},
   "missing_fields": [],
@@ -137,6 +157,18 @@ content
 ```
 
 ```text
+确认报价
+```
+
+```text
+确认报价 10.07-0006
+```
+
+```text
+不接受，太贵了
+```
+
+```text
 取消订单
 ```
 
@@ -152,4 +184,5 @@ content
 Client: HttpDifyClient
 ```
 
-当前订单评测集包含 7 条用例，覆盖完整订单、缺字段追问、补充时间、修改口味、确认、取消和 unknown。
+当前订单评测集覆盖完整订单、缺字段追问、补充时间、修改口味、确认下单、
+带订单号确认报价、拒绝报价、取消和 unknown。

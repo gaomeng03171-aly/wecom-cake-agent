@@ -267,7 +267,7 @@ def test_aibot_worker_routes_order_scenario_and_notifies_owner(client) -> None:
     asyncio.run(run())
 
     assert ws_client.sent_messages[0][0] == "owner-001"
-    assert "新订单已确认" in ws_client.sent_messages[0][1]["markdown"]["content"]
+    assert "新订单待报价" in ws_client.sent_messages[0][1]["markdown"]["content"]
 
 
 def test_aibot_worker_retries_pending_active_outbox(client) -> None:

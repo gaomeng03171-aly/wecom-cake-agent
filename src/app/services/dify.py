@@ -5,6 +5,8 @@ from app.schemas.dify import DinnerDifyOutput, OrderDifyOutput
 from app.services.order_requirements import (
     annotate_relative_times,
     build_order_requirements,
+    extract_customer_note,
+    extract_order_reference,
     format_order_confirmation,
     format_order_follow_up,
     missing_order_fields,
@@ -70,6 +72,27 @@ def analyze_order_message(content: str) -> OrderDifyOutput:
 
     return analysis.model_copy(
         update={
+            "order_reference": (
+                analysis.order_reference
+                or extract_order_reference(content)
+            ),
+            "customer_note": (
+                analysis.customer_note
+                or extract_customer_note(content)
+            ),
+            "customer_expected_price": (
+                analysis.customer_expected_price
+                if analysis.customer_expected_price is not None
+                else analysis.budget_max
+            ),
+            "customer_expected_price_text": (
+                analysis.customer_expected_price_text
+                or (
+                    f"{analysis.budget_max}元"
+                    if analysis.budget_max is not None
+                    else None
+                )
+            ),
             "product_name": requirements.get(
                 "product_name",
                 analysis.product_name,

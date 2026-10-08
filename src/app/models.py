@@ -1,8 +1,20 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -242,7 +254,32 @@ class OrderStatus(StrEnum):
     COLLECTING = "collecting"
     PENDING_CONFIRMATION = "pending_confirmation"
     CONFIRMED = "confirmed"
+    PREPARING = "preparing"
+    READY = "ready"
+    COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+
+class QuoteStatus(StrEnum):
+    PENDING_OWNER = "pending_owner"
+    PENDING_CUSTOMER = "pending_customer"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    SUPERSEDED = "superseded"
+
+
+class QuoteSource(StrEnum):
+    CUSTOMER = "customer"
+    OWNER = "owner"
+
+
+class PaymentStatus(StrEnum):
+    NOT_REQUIRED = "not_required"
+    UNPAID = "unpaid"
+    DEPOSIT_PENDING = "deposit_pending"
+    DEPOSIT_PAID = "deposit_paid"
+    PAID = "paid"
+    REFUNDED = "refunded"
 
 
 class OrderScenario(StrEnum):
@@ -255,6 +292,10 @@ class OrderScenario(StrEnum):
 class OrderConfirmationType(StrEnum):
     CUSTOMER_CONFIRMED = "customer_confirmed"
     CUSTOMER_CANCELLED = "customer_cancelled"
+    QUOTE_APPROVED = "quote_approved"
+    QUOTE_FEEDBACK = "quote_feedback"
+    CUSTOMER_RESTORED = "customer_restored"
+    CUSTOMER_MODIFY_REQUEST = "customer_modify_request"
 
 
 class Customer(Base):
@@ -291,8 +332,21 @@ class Customer(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        UniqueConstraint(
+            "business_date",
+            "order_number",
+            name="uq_order_business_date_number",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    business_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+        index=True,
+    )
     customer_id: Mapped[int] = mapped_column(
         ForeignKey("customers.id"),
         index=True,
@@ -309,11 +363,55 @@ class Order(Base):
         default=OrderStatus.COLLECTING.value,
         index=True,
     )
+    quote_status: Mapped[str] = mapped_column(
+        String(32),
+        default=QuoteStatus.PENDING_OWNER.value,
+        index=True,
+    )
+    payment_status: Mapped[str] = mapped_column(
+        String(32),
+        default=PaymentStatus.NOT_REQUIRED.value,
+        index=True,
+    )
     title: Mapped[str] = mapped_column(String(255), default="订单")
+    customer_expected_price: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 3),
+        nullable=True,
+    )
+    customer_expected_price_text: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    quoted_total: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 3),
+        nullable=True,
+    )
+    deposit_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    deposit_amount: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 3),
+        nullable=True,
+    )
+    scheduled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
     requirements: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     missing_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
     confirmation_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    preparing_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    ready_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -333,6 +431,10 @@ class Order(Base):
 
     customer: Mapped[Customer] = relationship(back_populates="orders")
     confirmations: Mapped[list["OrderConfirmation"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+    )
+    quotes: Mapped[list["OrderQuote"]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
     )
@@ -360,3 +462,43 @@ class OrderConfirmation(Base):
     )
 
     order: Mapped[Order] = relationship(back_populates="confirmations")
+
+
+class OrderQuote(Base):
+    __tablename__ = "order_quotes"
+    __table_args__ = (
+        UniqueConstraint(
+            "order_id",
+            "version",
+            name="uq_order_quote_version",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_id: Mapped[int] = mapped_column(
+        ForeignKey("orders.id"),
+        index=True,
+    )
+    version: Mapped[int] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(32), index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 3))
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
+
+    order: Mapped[Order] = relationship(back_populates="quotes")
+
+
+class OrderDailySequence(Base):
+    __tablename__ = "order_daily_sequences"
+
+    business_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    last_number: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )

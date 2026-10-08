@@ -27,6 +27,10 @@ COMPARABLE_FIELDS = (
     "delivery_time",
     "delivery_address",
     "budget_max",
+    "customer_expected_price",
+    "customer_expected_price_text",
+    "order_reference",
+    "customer_note",
     "notes",
 )
 

@@ -37,6 +37,8 @@ class OrderDifyOutput(BaseModel):
         "provide_requirement",
         "update_requirement",
         "confirm_order",
+        "confirm_quote",
+        "reject_quote",
         "cancel_order",
         "unknown",
     ] = "unknown"
@@ -53,6 +55,10 @@ class OrderDifyOutput(BaseModel):
     delivery_time: str | None = None
     delivery_address: str | None = None
     budget_max: int | None = None
+    customer_expected_price: float | None = None
+    customer_expected_price_text: str | None = None
+    order_reference: str | None = None
+    customer_note: str | None = None
     notes: str | None = None
     extra_requirements: dict[str, Any] = Field(default_factory=dict)
     requirements: dict[str, Any] = Field(default_factory=dict)

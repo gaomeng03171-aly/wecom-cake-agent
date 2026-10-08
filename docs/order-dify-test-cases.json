@@ -14,6 +14,8 @@
       "message_on_cake": "生日快乐",
       "pickup_time": "明天下午三点",
       "budget_max": 200,
+      "customer_expected_price": 200,
+      "customer_expected_price_text": "200元",
       "missing_fields": []
     },
     "regex_fields": {
@@ -65,10 +67,51 @@
     "ignore_fields": ["missing_fields", "reply"]
   },
   {
+    "name": "relative_days_later",
+    "input": "我想订一个巧克力蛋糕，五天后的下午一点，配送到上海市第二工业大学",
+    "expected": {
+      "intent": "create_order",
+      "scenario": "cake",
+      "product_name": "蛋糕",
+      "flavor": "巧克力",
+      "delivery_time": "五天后的下午一点",
+      "delivery_address": "上海市第二工业大学"
+    },
+    "ignore_fields": ["missing_fields", "reply"],
+    "regex_fields": {
+      "delivery_time": "^\\(\\d{1,2}\\.\\d{1,2}\\)五天后的下午一点$"
+    }
+  },
+  {
     "name": "confirm_order",
     "input": "确认下单",
     "expected": {
       "intent": "confirm_order"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "confirm_quote",
+    "input": "确认报价",
+    "expected": {
+      "intent": "confirm_quote"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "confirm_quote_with_order_reference",
+    "input": "确认报价 10.07-0006",
+    "expected": {
+      "intent": "confirm_quote",
+      "order_reference": "10.07-0006"
+    },
+    "ignore_fields": ["missing_fields", "reply"]
+  },
+  {
+    "name": "reject_quote",
+    "input": "太贵了，不接受",
+    "expected": {
+      "intent": "reject_quote"
     },
     "ignore_fields": ["missing_fields", "reply"]
   },

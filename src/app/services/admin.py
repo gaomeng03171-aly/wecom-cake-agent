@@ -1,6 +1,10 @@
+from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models import (
     ActivityParticipant,
     ActivityStatus,
@@ -10,9 +14,12 @@ from app.models import (
     InboundMessage,
     Order,
     OrderConfirmation,
+    OrderQuote,
     OrderStatus,
     OutboxMessage,
     OutboxStatus,
+    PaymentStatus,
+    QuoteStatus,
     Reminder,
     ReminderStatus,
     Vote,
@@ -33,9 +40,24 @@ from app.schemas.order import (
     CustomerOut,
     OrderConfirmationOut,
     OrderOut,
+    OrderQuoteOut,
+    OwnerMessageIn,
+    OwnerQuoteIn,
 )
-from app.services.outbox import list_outbox_messages
+from app.services.order_requirements import format_quote_request
+from app.services.outbox import enqueue_reply, list_outbox_messages
 from app.services.reminders import list_reminders
+from app.services.orders import (
+    OrderServiceError,
+    mark_deposit_paid,
+    mark_order_completed as mark_fulfillment_completed,
+    mark_order_ready as mark_fulfillment_ready,
+    owner_submit_quote,
+)
+
+
+class AdminOrderActionError(RuntimeError):
+    pass
 
 
 def _count(db: Session, model: type, *conditions) -> int:
@@ -51,6 +73,12 @@ def get_overview(db: Session) -> AdminOverviewOut:
         ActivityStatus.PROPOSING.value,
         ActivityStatus.VOTING.value,
     ]
+    now = datetime.now(ZoneInfo(get_settings().app_timezone))
+    day_start = datetime.combine(
+        now.date(),
+        time.min,
+        tzinfo=now.tzinfo,
+    ).astimezone(timezone.utc)
     return AdminOverviewOut(
         total_orders=_count(db, Order),
         collecting_orders=_count(
@@ -67,6 +95,44 @@ def get_overview(db: Session) -> AdminOverviewOut:
             db,
             Order,
             Order.status == OrderStatus.CONFIRMED.value,
+        ),
+        pending_owner_quotes=_count(
+            db,
+            Order,
+            Order.quote_status.in_(
+                [
+                    QuoteStatus.PENDING_OWNER.value,
+                    QuoteStatus.REJECTED.value,
+                ]
+            ),
+            Order.status == OrderStatus.CONFIRMED.value,
+        ),
+        pending_customer_quotes=_count(
+            db,
+            Order,
+            Order.quote_status == QuoteStatus.PENDING_CUSTOMER.value,
+            Order.status == OrderStatus.CONFIRMED.value,
+        ),
+        deposit_pending_orders=_count(
+            db,
+            Order,
+            Order.payment_status == PaymentStatus.DEPOSIT_PENDING.value,
+        ),
+        preparing_orders=_count(
+            db,
+            Order,
+            Order.status == OrderStatus.PREPARING.value,
+        ),
+        ready_orders=_count(
+            db,
+            Order,
+            Order.status == OrderStatus.READY.value,
+        ),
+        completed_today=_count(
+            db,
+            Order,
+            Order.status == OrderStatus.COMPLETED.value,
+            Order.completed_at >= day_start,
         ),
         total_activities=_count(db, DinnerActivity),
         active_activities=_count(
@@ -173,6 +239,8 @@ def get_activity_detail(
             for reminder in list_reminders(db, activity_id)
         ],
     )
+
+
 def list_inbound_messages(
     db: Session,
     group_id: str | None = None,
@@ -240,4 +308,175 @@ def get_order_detail(
             OrderConfirmationOut.model_validate(confirmation)
             for confirmation in confirmations
         ],
+        quotes=[
+            OrderQuoteOut.model_validate(quote)
+            for quote in db.scalars(
+                select(OrderQuote)
+                .where(OrderQuote.order_id == order_id)
+                .order_by(OrderQuote.version)
+            ).all()
+        ],
+    )
+
+
+def submit_owner_quote(
+    db: Session,
+    order_id: int,
+    payload: OwnerQuoteIn,
+):
+    order = db.get(Order, order_id)
+    if order is None:
+        raise AdminOrderActionError("order not found")
+
+    if payload.accept_expected_price:
+        amount = order.customer_expected_price
+        if amount is None:
+            raise AdminOrderActionError("客户没有填写预期价格")
+    else:
+        amount = payload.amount
+        if amount is None:
+            raise AdminOrderActionError("请填写店主报价")
+
+    try:
+        owner_submit_quote(
+            db,
+            order_id=order_id,
+            amount=amount,
+            note=payload.note,
+            commit=False,
+        )
+        content = format_quote_request(
+            order.requirements or {},
+            amount,
+            order_number=(
+                f"{order.business_date:%m.%d}-{order.order_number:04d}"
+                if order.business_date is not None
+                and order.order_number is not None
+                else None
+            ),
+            note=payload.note,
+            scenario=order.scenario,
+        )
+        outbox = enqueue_customer_notification(
+            db,
+            order,
+            content,
+        )
+        db.commit()
+        db.refresh(order)
+        db.refresh(outbox)
+        return order, outbox
+    except OrderServiceError as exc:
+        db.rollback()
+        raise AdminOrderActionError(str(exc)) from exc
+
+
+def mark_order_deposit_paid(
+    db: Session,
+    order_id: int,
+):
+    order = db.get(Order, order_id)
+    if order is None:
+        raise AdminOrderActionError("order not found")
+    try:
+        mark_deposit_paid(db, order_id=order_id, commit=False)
+        outbox = enqueue_customer_notification(
+            db,
+            order,
+            "已收到定金，订单开始制作。",
+        )
+        db.commit()
+        db.refresh(order)
+        db.refresh(outbox)
+        return order, outbox
+    except OrderServiceError as exc:
+        db.rollback()
+        raise AdminOrderActionError(str(exc)) from exc
+
+
+def mark_order_ready(
+    db: Session,
+    order_id: int,
+):
+    order = db.get(Order, order_id)
+    if order is None:
+        raise AdminOrderActionError("order not found")
+    try:
+        mark_fulfillment_ready(db, order_id=order_id, commit=False)
+        outbox = enqueue_customer_notification(
+            db,
+            order,
+            "蛋糕已制作完成，可以取货啦。",
+        )
+        db.commit()
+        db.refresh(order)
+        db.refresh(outbox)
+        return order, outbox
+    except OrderServiceError as exc:
+        db.rollback()
+        raise AdminOrderActionError(str(exc)) from exc
+
+
+def mark_order_completed(
+    db: Session,
+    order_id: int,
+):
+    order = db.get(Order, order_id)
+    if order is None:
+        raise AdminOrderActionError("order not found")
+    try:
+        mark_fulfillment_completed(db, order_id=order_id, commit=False)
+        outbox = enqueue_customer_notification(
+            db,
+            order,
+            "订单已完成，感谢惠顾。",
+        )
+        db.commit()
+        db.refresh(order)
+        db.refresh(outbox)
+        return order, outbox
+    except OrderServiceError as exc:
+        db.rollback()
+        raise AdminOrderActionError(str(exc)) from exc
+
+
+def send_owner_message(
+    db: Session,
+    order_id: int,
+    payload: OwnerMessageIn,
+):
+    order = db.get(Order, order_id)
+    if order is None:
+        raise AdminOrderActionError("order not found")
+    content = payload.content.strip()
+    if not content:
+        raise AdminOrderActionError("留言不能为空")
+    try:
+        outbox = enqueue_customer_notification(
+            db,
+            order,
+            f"店主留言：{content}",
+        )
+        db.commit()
+        db.refresh(order)
+        db.refresh(outbox)
+        return order, outbox
+    except Exception as exc:
+        db.rollback()
+        raise AdminOrderActionError(str(exc)) from exc
+
+
+def enqueue_customer_notification(
+    db: Session,
+    order: Order,
+    content: str,
+) -> OutboxMessage:
+    return enqueue_reply(
+        db,
+        order.conversation_id,
+        content,
+        dispatch_channel="active",
+        next_attempt_at=None,
+        max_retries=10,
+        commit=False,
     )

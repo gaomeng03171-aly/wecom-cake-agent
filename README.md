@@ -60,7 +60,9 @@
 
 第二十一阶段：前端生产镜像、Nginx 反向代理、HTTP 与 HTTPS Compose 部署已实现。
 
-当前 0.23：项目定位调整为面向小微商户的企业微信订单接待 Agent。已完成订单领域模型、Alembic 迁移、订单状态机、蛋糕订单 Dify 意图与字段抽取、订单会话流程、店主 Outbox 通知、企业微信长连接 worker 接入，以及订单列表和详情管理台。
+当前 1.6：项目定位为面向小微商户的企业微信订单接待 Agent。已完成订单领域模型、
+按日四位订单号、客户需求确认、店主报价、客户报价确认、定金、制作/可取货/完成状态、
+Outbox 通知，以及带月历和订单操作的 React 管理台。
 
 ## 本地启动
 
@@ -91,7 +93,60 @@ WECOM_OWNER_USER_ID=店主的企业微信userid
 ORDER_NOTIFICATION_CHANNEL=auto
 ```
 
-订单字段完整后，机器人会生成确认文本；客户确认后写入 `orders` 和 `order_confirmations`，并创建一条发送给店主的 Outbox 消息。
+订单字段完整后，机器人会生成确认文本；客户确认需求后写入 `orders` 和
+`order_confirmations`，并创建一条“待报价”通知给店主。店主完成报价后，
+客户需要再次确认报价，订单才会进入制作或等待定金。
+
+订单生命周期：
+
+```text
+collecting
+  -> pending_confirmation
+  -> confirmed
+  -> preparing
+  -> ready
+  -> completed
+```
+
+- 客户确认需求后进入 `confirmed`，等待店主报价。
+- 店主报价后，客户确认报价；无需定金时自动进入 `preparing`。
+- 满足定金规则时，店主先确认收到定金，再进入 `preparing`。
+- 店主确认蛋糕做好后进入 `ready`，客户取货后进入 `completed`。
+
+四位订单号按营业日重置：
+
+```text
+10.07-0001
+10.07-0002
+```
+
+定金规则：
+
+```text
+取货日期距离下单日期超过 5 个自然日
+且最终确认报价 > 200 元
+定金 = 最终报价 × 20%
+```
+
+金额使用 `Decimal`，不取整；例如 `228 × 20% = 45.6`。
+
+同一直聊存在多笔待确认报价时，客户需要回复订单号：
+
+```text
+确认报价 10.07-0006
+```
+
+也支持 `0006`、`订单号 6` 等写法。未指定订单号时，机器人会列出待确认报价，
+不会自动确认最新一笔。
+
+店主报价时可以填写给客户的备注，例如“亲亲给您打了八折”。客户拒绝报价或在
+报价沟通中回复备注时，原话会作为客户留言发给店主。
+
+常见的附加要求会在入库前转换为中文，例如 `candles` 会保存并展示为“蜡烛数量”。
+`pieces_per_box` 会转换为“规格：一套四个”这类表达。
+
+如果同一会话需要重新开始，可以发送“清除记忆”或“清除记录”。未确认的旧草稿
+会被关闭，下一条订单需求会创建新的订单上下文。
 
 店主通知通道：
 
@@ -109,7 +164,21 @@ ORDER_NOTIFICATION_CHANNEL=auto
 
 ```text
 (10.6)今天下午五点
+(10.13)五天后的下午一点
 ```
+
+报价阶段的客户反馈不会直接取消订单。客户表达“好贵”“太贵了”等内容时，
+机器人会把原话转给店主重新报价，并使用安抚话术回复客户。
+
+已取消订单支持店主向客户发送一条留言。客户后续带上订单号回来时，机器人会
+确认这笔已取消订单，并让客户选择恢复订单或修改备注、商品规格等内容。
+客户发送“你好”“你这里有什么蛋糕”等寒暄或菜单询问时，机器人会直接返回蛋糕菜单，
+并提示支持高端私人定制。明显的无意义商品或离谱配送地，例如“混凝土蛋糕”、
+“水泥蛋糕”“送到月球”，也会在进入 Dify 前被本地拦截，使用约束话术并附上菜单回复，
+不会生成订单。
+
+管理台已移除旧聚餐业务的“活动”入口。历史聚餐数据和没有订单号的旧订单
+可以通过 `scripts/cleanup_legacy_data.py` 先 dry-run，再执行清理。
 
 订单 Dify 支持三种模式：
 
@@ -121,7 +190,10 @@ ORDER_DIFY_MODE=auto
 - `mock`：使用本地规则解析，适合无 Dify 开发
 - `real`：使用订单专用 Dify 配置
 
-订单 Workflow 的提示词、输出字段和测试输入见 [docs/order-dify-workflow.md](docs/order-dify-workflow.md)。
+订单 Workflow 的提示词、输出字段和测试输入见
+[docs/order-dify-workflow.md](docs/order-dify-workflow.md)。
+1.6 新增 `customer_expected_price`、`customer_expected_price_text`、
+`confirm_quote` 和 `reject_quote`，需要同步更新真实 Dify Workflow。
 
 ## 接入真实 Dify
 
@@ -171,7 +243,7 @@ WECOM_SENDER_TIMEOUT_SECONDS=10
 
 当前实现使用企业微信官方群机器人 Webhook，适合验证消息发送和 Outbox 状态。群机器人 Webhook 只能发送，不能读取群聊消息；完整接收普通群聊消息仍需要企业微信智能机器人长连接或会话内容存档能力。
 
-## 管理查询接口
+## 管理接口
 
 本地开发默认不要求管理密钥。部署到共享环境前，建议设置：
 
@@ -191,8 +263,11 @@ X-Admin-Key: your-admin-key
 GET /admin/overview
 GET /admin/orders
 GET /admin/orders/{order_id}
-GET /admin/activities
-GET /admin/activities/{activity_id}
+POST /admin/orders/{order_id}/quote
+POST /admin/orders/{order_id}/deposit-paid
+POST /admin/orders/{order_id}/ready
+POST /admin/orders/{order_id}/completed
+POST /admin/orders/{order_id}/message
 GET /admin/messages
 ```
 
@@ -400,15 +475,16 @@ http://127.0.0.1:5173
 
 前端开发服务器会把 `/api` 代理到 FastAPI。若配置了 `ADMIN_API_KEY`，可在左侧输入管理密钥，密钥只保存在浏览器 `sessionStorage`。
 
-## 0.23 已完成范围
+## 1.6 已完成范围
 
-1. 订单领域模型、Alembic 迁移和订单状态机
-2. `create_order`、`provide_requirement`、`update_requirement`、`confirm_order`、`cancel_order` 意图
-3. 订单字段抽取、缺失字段追问和订单确认文本
-4. 客户确认后写入订单、保存确认记录并创建店主通知 Outbox
-5. 企业微信智能机器人长连接订单模式
-6. React 管理台订单列表、详情、状态和确认记录
-7. 真实订单 Dify 评测脚本，当前 7/7 用例通过
+1. 订单领域模型、迁移、状态机、报价记录和每日序号
+2. `create_order`、`provide_requirement`、`update_requirement`、`confirm_order`、
+   `confirm_quote`、`reject_quote`、`cancel_order` 意图
+3. 客户预期价格、字段追问、订单确认文本和报价确认文本
+4. 店主报价、接受预期价、客户确认/拒绝、定金和履约状态
+5. 报价和履约通知通过 Outbox 发送，失败可重试
+6. React 今日工作台、20 秒轮询、月历、报价历史和订单操作
+7. 订单 Dify mock 评测 11/11 通过
 
 ## 许可
 

@@ -1,12 +1,16 @@
 import {
   Activity as ActivityIcon,
+  CalendarDays,
   CalendarRange,
   CheckCircle2,
   ClipboardList,
   CircleAlert,
+  CircleDollarSign,
+  Clock3,
   Database,
   LayoutDashboard,
   MessageSquareText,
+  PackageCheck,
   PlugZap,
   RefreshCw,
   Send,
@@ -17,6 +21,8 @@ import {
 import { useEffect, useState } from "react";
 
 import { apiFetch, getAdminKey, setAdminKey } from "./api";
+import { OrderActions } from "./OrderActions";
+import { OrderCalendar } from "./OrderCalendar";
 import type {
   Activity,
   ActivityDetail,
@@ -31,16 +37,15 @@ import type {
   Reminder,
 } from "./types";
 
-type View = "overview" | "orders" | "activities" | "messages" | "integration";
+type View = "overview" | "orders" | "messages" | "integration";
 
 const navItems: Array<{
   id: View;
   label: string;
   icon: typeof LayoutDashboard;
 }> = [
-  { id: "overview", label: "总览", icon: LayoutDashboard },
+  { id: "overview", label: "今日工作台", icon: LayoutDashboard },
   { id: "orders", label: "订单", icon: ClipboardList },
-  { id: "activities", label: "活动", icon: CalendarRange },
   { id: "messages", label: "消息", icon: MessageSquareText },
   { id: "integration", label: "联调状态", icon: PlugZap },
 ];
@@ -58,7 +63,65 @@ const orderStatusLabels: Record<OrderStatus, string> = {
   collecting: "收集中",
   pending_confirmation: "待确认",
   confirmed: "已确认",
+  preparing: "制作中",
+  ready: "可取货",
+  completed: "已完成",
   cancelled: "已取消",
+};
+
+const quoteStatusLabels: Record<string, string> = {
+  pending_owner: "待店主报价",
+  pending_customer: "待客户确认价格",
+  approved: "报价已确认",
+  rejected: "客户未接受",
+  superseded: "已替代",
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  not_required: "无需定金",
+  unpaid: "未支付",
+  deposit_pending: "待收定金",
+  deposit_paid: "定金已收",
+  paid: "已支付",
+  refunded: "已退款",
+};
+
+const confirmationTypeLabels: Record<string, string> = {
+  customer_confirmed: "客户确认",
+  customer_cancelled: "客户取消",
+  quote_approved: "确认报价",
+  quote_feedback: "客户反馈",
+};
+
+const requirementLabels: Record<string, string> = {
+  customer_name: "客户",
+  phone: "联系电话",
+  product_name: "商品",
+  quantity: "数量",
+  size: "尺寸",
+  flavor: "口味",
+  message_on_cake: "蛋糕留言",
+  pickup_time: "取货时间",
+  delivery_time: "配送时间",
+  delivery_address: "配送地址",
+  budget_max: "预算",
+  notes: "备注",
+  candles: "蜡烛数量",
+  candle_count: "蜡烛数量",
+  "蜡烛数量": "蜡烛数量",
+  pieces_per_box: "规格",
+  "规格": "规格",
+  birthday_hat: "生日礼帽",
+  cake_topper: "蛋糕插牌",
+  topper: "蛋糕插牌",
+  card_message: "贺卡留言",
+  greeting_card: "贺卡留言",
+  color: "颜色",
+  theme: "主题",
+  shape: "形状",
+  eggless: "是否无蛋",
+  sugar_free: "是否无糖",
+  allergies: "过敏信息",
 };
 
 function formatDate(value: string | null): string {
@@ -71,8 +134,30 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
-function StatusBadge({ status }: { status: string }) {
-  return <span className={`status status-${status}`}>{status}</span>;
+function formatMoney(value: string | number | null): string {
+  if (value === null || value === undefined || value === "") return "-";
+  const number = Number(value);
+  if (Number.isNaN(number)) return String(value);
+  return number.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function formatOrderNumber(order: Order): string {
+  if (order.business_date && order.order_number) {
+    return `${order.business_date.slice(5)}-${String(order.order_number).padStart(4, "0")}`;
+  }
+  return `#${order.id}`;
+}
+
+function StatusBadge({
+  status,
+  label,
+}: {
+  status: string;
+  label?: string;
+}) {
+  return (
+    <span className={`status status-${status}`}>{label ?? status}</span>
+  );
 }
 
 function Metric({
@@ -226,23 +311,34 @@ function ActivityDetailPanel({ detail }: { detail: ActivityDetail | null }) {
   );
 }
 
-function OrderDetailPanel({ detail }: { detail: OrderDetail | null }) {
+function OrderDetailPanel({
+  detail,
+  actionBusy,
+  onAction,
+}: {
+  detail: OrderDetail | null;
+  actionBusy: boolean;
+  onAction: (action: string, body?: Record<string, unknown>) => Promise<void>;
+}) {
   if (!detail) {
     return <EmptyState text="选择一条订单查看详情" />;
   }
 
-  const { order, customer, confirmations } = detail;
+  const { order, customer, confirmations, quotes } = detail;
   const requirementEntries = Object.entries(order.requirements ?? {});
 
   return (
     <section className="detail-panel">
       <div className="detail-heading">
         <div>
-          <p className="eyebrow">订单 #{order.id}</p>
+          <p className="eyebrow">订单 {formatOrderNumber(order)}</p>
           <h2>{order.title}</h2>
           <span>{order.conversation_name || order.conversation_id}</span>
         </div>
-        <StatusBadge status={order.status} />
+        <StatusBadge
+          status={order.status}
+          label={orderStatusLabels[order.status]}
+        />
       </div>
 
       <div className="detail-summary">
@@ -255,10 +351,52 @@ function OrderDetailPanel({ detail }: { detail: OrderDetail | null }) {
           <strong>{order.scenario}</strong>
         </div>
         <div>
+          <span>取货时间</span>
+          <strong>{formatDate(order.scheduled_at)}</strong>
+        </div>
+        <div>
+          <span>预期价格</span>
+          <strong>
+            {order.customer_expected_price
+              ? `${formatMoney(order.customer_expected_price)}元`
+              : "-"}
+          </strong>
+        </div>
+        <div>
+          <span>店主报价</span>
+          <strong>
+            {order.quoted_total
+              ? `${formatMoney(order.quoted_total)}元`
+              : "-"}
+          </strong>
+        </div>
+        <div>
+          <span>报价状态</span>
+          <strong>{quoteStatusLabels[order.quote_status]}</strong>
+        </div>
+        <div>
+          <span>付款状态</span>
+          <strong>{paymentStatusLabels[order.payment_status]}</strong>
+        </div>
+        <div>
+          <span>定金</span>
+          <strong>
+            {order.deposit_required
+              ? `${formatMoney(order.deposit_amount)}元`
+              : "无需定金"}
+          </strong>
+        </div>
+        <div>
           <span>更新时间</span>
           <strong>{formatDate(order.updated_at)}</strong>
         </div>
       </div>
+
+      <OrderActions
+        busy={actionBusy}
+        detail={detail}
+        onAction={onAction}
+      />
 
       <div className="subsection">
         <div className="subsection-heading">
@@ -268,7 +406,7 @@ function OrderDetailPanel({ detail }: { detail: OrderDetail | null }) {
         <div className="proposal-list">
           {requirementEntries.map(([key, value]) => (
             <div className="proposal-row" key={key}>
-              <strong>{key}</strong>
+              <strong>{requirementLabels[key] ?? key}</strong>
               <span>{String(value)}</span>
             </div>
           ))}
@@ -288,7 +426,7 @@ function OrderDetailPanel({ detail }: { detail: OrderDetail | null }) {
             {order.missing_fields.map((field) => (
               <div className="event-row" key={field}>
                 <StatusBadge status="pending" />
-                <span>{field}</span>
+                <span>{requirementLabels[field] ?? field}</span>
               </div>
             ))}
           </div>
@@ -297,14 +435,57 @@ function OrderDetailPanel({ detail }: { detail: OrderDetail | null }) {
 
       <div className="subsection">
         <div className="subsection-heading">
+          <h3>报价历史</h3>
+          <span>{quotes.length} 条</span>
+        </div>
+        <div className="event-list">
+          {quotes.map((quote) => (
+            <div className="event-row quote-event" key={quote.id}>
+              <StatusBadge
+                status={quote.status}
+                label={quoteStatusLabels[quote.status]}
+              />
+              <span>
+                v{quote.version} · {quote.source === "customer" ? "客户预期" : "店主报价"} ·{" "}
+                {formatMoney(quote.amount)}元
+                {quote.note ? ` · ${quote.note}` : ""}
+              </span>
+            </div>
+          ))}
+          {quotes.length === 0 ? (
+            <EmptyState text="还没有报价记录" />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="subsection">
+        <div className="subsection-heading">
           <h3>确认记录</h3>
           <span>{confirmations.length} 条</span>
         </div>
         <div className="event-list">
           {confirmations.map((confirmation) => (
-            <div className="event-row" key={confirmation.id}>
-              <StatusBadge status="confirmed" />
-              <span>{confirmation.confirmation_text || confirmation.confirmation_type}</span>
+            <div
+              className="event-row confirmation-event"
+              key={confirmation.id}
+            >
+              <div className="event-meta">
+                <StatusBadge
+                  status={confirmation.confirmation_type}
+                  label={
+                    confirmationTypeLabels[
+                      confirmation.confirmation_type
+                    ] ?? confirmation.confirmation_type
+                  }
+                />
+                <span className="event-time">
+                  {formatDate(confirmation.created_at)}
+                </span>
+              </div>
+              <div className="event-content">
+                {confirmation.confirmation_text ||
+                  confirmation.confirmation_type}
+              </div>
             </div>
           ))}
           {confirmations.length === 0 ? (
@@ -320,37 +501,33 @@ export function App() {
   const [view, setView] = useState<View>("overview");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [messages, setMessages] = useState<InboundMessage[]>([]);
   const [integration, setIntegration] = useState<IntegrationStatus | null>(null);
   const [selectedOrderDetail, setSelectedOrderDetail] =
     useState<OrderDetail | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<ActivityDetail | null>(null);
-  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [groupFilter, setGroupFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("");
   const [orderScenarioFilter, setOrderScenarioFilter] = useState("");
   const [adminKey, setAdminKeyState] = useState(getAdminKey());
   const [loading, setLoading] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function loadData() {
-    setLoading(true);
+  async function loadData(silent = false) {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const query = new URLSearchParams();
       if (groupFilter) query.set("group_id", groupFilter);
-      if (statusFilter) query.set("status", statusFilter);
       const orderQuery = new URLSearchParams();
+      orderQuery.set("limit", "200");
       if (orderStatusFilter) orderQuery.set("status", orderStatusFilter);
       if (orderScenarioFilter) orderQuery.set("scenario", orderScenarioFilter);
-      const [overviewData, orderData, activityData, messageData, integrationData] =
+      const [overviewData, orderData, messageData, integrationData] =
         await Promise.all([
           apiFetch<Overview>("/admin/overview"),
           apiFetch<Order[]>(`/admin/orders?${orderQuery.toString()}`),
-          apiFetch<Activity[]>(`/admin/activities?${query.toString()}`),
           apiFetch<InboundMessage[]>(
             `/admin/messages?${groupFilter ? `group_id=${encodeURIComponent(groupFilter)}` : ""}`,
           ),
@@ -358,30 +535,18 @@ export function App() {
         ]);
       setOverview(overviewData);
       setOrders(orderData);
-      setActivities(activityData);
       setMessages(messageData);
       setIntegration(integrationData);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "加载失败");
     } finally {
-      setLoading(false);
-    }
-  }
-
-  async function openActivity(activityId: number) {
-    setSelectedActivityId(activityId);
-    try {
-      const detail = await apiFetch<ActivityDetail>(
-        `/admin/activities/${activityId}`,
-      );
-      setSelectedDetail(detail);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "加载失败");
+      if (!silent) setLoading(false);
     }
   }
 
   async function openOrder(orderId: number) {
     setSelectedOrderId(orderId);
+    setSelectedOrderDetail(null);
     try {
       const detail = await apiFetch<OrderDetail>(`/admin/orders/${orderId}`);
       setSelectedOrderDetail(detail);
@@ -390,9 +555,43 @@ export function App() {
     }
   }
 
+  async function orderAction(
+    action: string,
+    body: Record<string, unknown> = {},
+  ) {
+    if (!selectedOrderId) return;
+    setActionBusy(true);
+    setError("");
+    try {
+      const detail = await apiFetch<OrderDetail>(
+        `/admin/orders/${selectedOrderId}/${action}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      setSelectedOrderDetail(detail);
+      await loadData(true);
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error ? actionError.message : "订单操作失败",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
   useEffect(() => {
     void loadData();
-  }, [groupFilter, statusFilter, orderStatusFilter, orderScenarioFilter]);
+  }, [groupFilter, orderStatusFilter, orderScenarioFilter]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void loadData(true);
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [groupFilter, orderStatusFilter, orderScenarioFilter]);
 
   function updateAdminKey(value: string) {
     setAdminKey(value);
@@ -406,7 +605,7 @@ export function App() {
           <div className="brand-mark">单</div>
           <div>
             <strong>订单 Agent</strong>
-            <span>小微商户管理台</span>
+            <span>小微商户管理台 · 1.6</span>
           </div>
         </div>
         <nav>
@@ -440,7 +639,7 @@ export function App() {
       <main>
         <header className="topbar">
           <div>
-            <p className="eyebrow">运行控制台</p>
+            <p className="eyebrow">门店订单接待</p>
             <h1>{navItems.find((item) => item.id === view)?.label}</h1>
           </div>
           <button className="icon-button" onClick={() => void loadData()} type="button">
@@ -459,28 +658,53 @@ export function App() {
         {view === "overview" && overview ? (
           <section className="view-section">
             <div className="metric-grid">
-              <Metric label="订单总数" value={overview.total_orders} icon={ClipboardList} />
               <Metric
-                label="待确认订单"
-                value={overview.pending_confirmation_orders}
-                icon={Store}
+                label="待店主报价"
+                value={overview.pending_owner_quotes}
+                icon={CircleDollarSign}
                 tone="amber"
               />
               <Metric
-                label="已确认订单"
-                value={overview.confirmed_orders}
+                label="待客户确认价格"
+                value={overview.pending_customer_quotes}
+                icon={Clock3}
+                tone="amber"
+              />
+              <Metric
+                label="待收定金"
+                value={overview.deposit_pending_orders}
+                icon={CircleDollarSign}
+                tone="red"
+              />
+              <Metric
+                label="制作中"
+                value={overview.preparing_orders}
+                icon={ActivityIcon}
+              />
+              <Metric
+                label="可取货"
+                value={overview.ready_orders}
+                icon={PackageCheck}
+                tone="green"
+              />
+              <Metric
+                label="今日完成"
+                value={overview.completed_today}
                 icon={CheckCircle2}
                 tone="green"
               />
-              <Metric label="活动总数" value={overview.total_activities} icon={CalendarRange} />
-              <Metric label="进行中" value={overview.active_activities} icon={ActivityIcon} />
-              <Metric label="消息" value={overview.inbound_messages} icon={MessageSquareText} />
-              <Metric label="参与者" value={overview.participants} icon={Users} />
-              <Metric label="候选方案" value={overview.proposals} icon={CheckCircle2} />
-              <Metric label="投票" value={overview.votes} icon={VoteIcon} />
+              <Metric label="订单总数" value={overview.total_orders} icon={ClipboardList} />
               <Metric label="待发送" value={overview.outbox_pending} icon={Send} tone="amber" />
               <Metric label="发送失败" value={overview.outbox_failed} icon={CircleAlert} tone="red" />
             </div>
+            <OrderCalendar
+              onOpenOrder={(orderId) => {
+                void openOrder(orderId);
+                setView("orders");
+              }}
+              orders={orders}
+              selectedOrderId={selectedOrderId}
+            />
           </section>
         ) : null}
 
@@ -514,10 +738,11 @@ export function App() {
                 <table>
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>订单号</th>
                       <th>订单</th>
-                      <th>场景</th>
-                      <th>会话</th>
+                      <th>客户</th>
+                      <th>取货</th>
+                      <th>报价</th>
                       <th>状态</th>
                       <th>更新时间</th>
                     </tr>
@@ -529,12 +754,20 @@ export function App() {
                         key={order.id}
                         onClick={() => void openOrder(order.id)}
                       >
-                        <td>#{order.id}</td>
+                        <td>{formatOrderNumber(order)}</td>
                         <td>{order.title}</td>
-                        <td>{order.scenario}</td>
                         <td>{order.conversation_name || order.conversation_id}</td>
+                        <td>{formatDate(order.scheduled_at)}</td>
                         <td>
-                          <StatusBadge status={order.status} />
+                          {order.quoted_total
+                            ? `${formatMoney(order.quoted_total)}元`
+                            : quoteStatusLabels[order.quote_status]}
+                        </td>
+                        <td>
+                          <StatusBadge
+                            status={order.status}
+                            label={orderStatusLabels[order.status]}
+                          />
                         </td>
                         <td>{formatDate(order.updated_at)}</td>
                       </tr>
@@ -544,66 +777,11 @@ export function App() {
                 {orders.length === 0 ? <EmptyState text="没有匹配的订单" /> : null}
               </div>
             </div>
-            <OrderDetailPanel detail={selectedOrderDetail} />
-          </section>
-        ) : null}
-
-        {view === "activities" ? (
-          <section className="view-section split-layout">
-            <div className="table-panel">
-              <div className="toolbar">
-                <input
-                  value={groupFilter}
-                  onChange={(event) => setGroupFilter(event.target.value)}
-                  placeholder="按群 ID 筛选"
-                />
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  <option value="">全部状态</option>
-                  {Object.entries(statusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>活动</th>
-                      <th>群组</th>
-                      <th>状态</th>
-                      <th>发起人</th>
-                      <th>更新时间</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activities.map((activity) => (
-                      <tr
-                        className={selectedActivityId === activity.id ? "selected" : ""}
-                        key={activity.id}
-                        onClick={() => void openActivity(activity.id)}
-                      >
-                        <td>#{activity.id}</td>
-                        <td>{activity.title}</td>
-                        <td>{activity.group_name || activity.group_id}</td>
-                        <td>
-                          <StatusBadge status={activity.status} />
-                        </td>
-                        <td>{activity.initiator_name || activity.initiator_id}</td>
-                        <td>{formatDate(activity.updated_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {activities.length === 0 ? <EmptyState text="没有匹配的活动" /> : null}
-              </div>
-            </div>
-            <ActivityDetailPanel detail={selectedDetail} />
+            <OrderDetailPanel
+              actionBusy={actionBusy}
+              detail={selectedOrderDetail}
+              onAction={orderAction}
+            />
           </section>
         ) : null}
 

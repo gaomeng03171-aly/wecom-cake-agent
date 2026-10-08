@@ -159,6 +159,12 @@ class AdminOverviewOut(BaseModel):
     collecting_orders: int
     pending_confirmation_orders: int
     confirmed_orders: int
+    pending_owner_quotes: int
+    pending_customer_quotes: int
+    deposit_pending_orders: int
+    preparing_orders: int
+    ready_orders: int
+    completed_today: int
     total_activities: int
     active_activities: int
     inbound_messages: int
