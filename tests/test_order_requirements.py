@@ -115,6 +115,19 @@ def test_parse_order_datetime_supports_days_later() -> None:
     )
 
 
+def test_parse_order_datetime_supports_date_without_time() -> None:
+    now = datetime(2026, 10, 9, 9, 0, tzinfo=ZoneInfo("Asia/Hong_Kong"))
+
+    assert parse_order_datetime("(10.19)十天后取货", now) == datetime(
+        2026,
+        10,
+        19,
+        0,
+        0,
+        tzinfo=now.tzinfo,
+    )
+
+
 def test_menu_bypasses_order_operations_and_keeps_real_addresses() -> None:
     assert is_menu_introduction_message("你好") is True
     assert is_menu_introduction_message("你好，确认报价") is False

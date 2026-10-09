@@ -341,7 +341,11 @@ def format_quote_accepted_message(
     return "已确认报价，订单已进入制作。"
 
 
-def format_amount(value: Decimal | int | float | str) -> str:
+def format_amount(
+    value: Decimal | int | float | str | None,
+) -> str:
+    if value is None:
+        return "-"
     try:
         decimal = Decimal(str(value))
     except (InvalidOperation, ValueError):
@@ -613,11 +617,13 @@ def parse_order_datetime(
     current = now
     target_date = current.date()
     text = value.strip()
+    date_recognized = False
     date_match = re.match(
         r"^\((\d{1,2})\.(\d{1,2})\)",
         text,
     )
     if date_match:
+        date_recognized = True
         month = int(date_match.group(1))
         day = int(date_match.group(2))
         target_date = current.date().replace(month=month, day=day)
@@ -631,6 +637,7 @@ def parse_order_datetime(
         if day_match:
             offset = _parse_chinese_count(day_match.group(1))
             if offset is not None:
+                date_recognized = True
                 target_date = current.date() + timedelta(days=offset)
         if day_match is None or offset is None:
             for prefix, offset in (
@@ -640,6 +647,7 @@ def parse_order_datetime(
                 ("大后天", 3),
             ):
                 if text.startswith(prefix):
+                    date_recognized = True
                     target_date = current.date() + timedelta(days=offset)
                     break
 
@@ -660,10 +668,15 @@ def parse_order_datetime(
             value,
         )
         if not clock_match:
-            return None
-        period = ""
-        hour = int(clock_match.group(1))
-        minute = int(clock_match.group(2))
+            if not date_recognized:
+                return None
+            hour = 0
+            minute = 0
+            period = ""
+        else:
+            period = ""
+            hour = int(clock_match.group(1))
+            minute = int(clock_match.group(2))
 
     if period in {"下午", "晚上"} and hour < 12:
         hour += 12

@@ -134,6 +134,20 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+function formatScheduledDate(value: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  if (date.getHours() === 0 && date.getMinutes() === 0) {
+    return new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+  return formatDate(value);
+}
+
 function formatMoney(value: string | number | null): string {
   if (value === null || value === undefined || value === "") return "-";
   const number = Number(value);
@@ -352,7 +366,7 @@ function OrderDetailPanel({
         </div>
         <div>
           <span>取货时间</span>
-          <strong>{formatDate(order.scheduled_at)}</strong>
+          <strong>{formatScheduledDate(order.scheduled_at)}</strong>
         </div>
         <div>
           <span>预期价格</span>
@@ -757,7 +771,7 @@ export function App() {
                         <td>{formatOrderNumber(order)}</td>
                         <td>{order.title}</td>
                         <td>{order.conversation_name || order.conversation_id}</td>
-                        <td>{formatDate(order.scheduled_at)}</td>
+                        <td>{formatScheduledDate(order.scheduled_at)}</td>
                         <td>
                           {order.quoted_total
                             ? `${formatMoney(order.quoted_total)}元`

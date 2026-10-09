@@ -401,6 +401,7 @@ def process_order_message(
             if len(quote_orders) > 1:
                 reply = _quote_choice_prompt(quote_orders)
             else:
+                quote_order = quote_orders[0]
                 order = quote_order
                 reply = "已把备注转告店主。"
                 owner_notification = _owner_notification(
@@ -487,7 +488,7 @@ def process_order_message(
                 else:
                     reply = UNRELATED_CUSTOMER_REPLY
             else:
-                reply = _progress_reply(order)
+                reply = _progress_reply(active_order)
     except OrderServiceError as exc:
         error = str(exc)
         reply = "订单处理失败，请稍后再试。"
