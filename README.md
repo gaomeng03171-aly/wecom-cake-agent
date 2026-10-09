@@ -1,3 +1,9 @@
+![WeCom Agent](https://img.shields.io/badge/WeCom-Order%20Agent-07C160?logo=wechat&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)
+![Dify](https://img.shields.io/badge/Dify-Workflow-1C64F2)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 # WeCom Cake Agent
 
 面向小微烘焙商户的企业微信订单接待 Agent。
