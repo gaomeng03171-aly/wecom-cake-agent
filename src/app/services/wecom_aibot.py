@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import logging
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -175,6 +176,7 @@ class WeComAiBotLongConnectionWorker:
         self._tasks: set[asyncio.Task[Any]] = set()
         self._retry_task: asyncio.Task[Any] | None = None
         self._authenticated = asyncio.Event()
+        self._message_locks: OrderedDict[str, asyncio.Lock] = OrderedDict()
 
     async def start(self) -> None:
         for event_name in ("message.text", "message.mixed"):
@@ -229,6 +231,25 @@ class WeComAiBotLongConnectionWorker:
         if payload is None:
             return
 
+        async with self._message_lock(payload.msg_id):
+            await self._process_frame_payload(frame, payload)
+
+    def _message_lock(self, msg_id: str) -> asyncio.Lock:
+        lock = self._message_locks.get(msg_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._message_locks[msg_id] = lock
+        else:
+            self._message_locks.move_to_end(msg_id)
+        while len(self._message_locks) > 1000:
+            self._message_locks.popitem(last=False)
+        return lock
+
+    async def _process_frame_payload(
+        self,
+        frame: dict[str, Any],
+        payload: WeComMessageIn,
+    ) -> None:
         plan = await asyncio.to_thread(self._process_message, payload)
         if plan is None:
             return
