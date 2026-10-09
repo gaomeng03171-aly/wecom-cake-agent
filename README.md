@@ -1,103 +1,92 @@
-# wecom-cake-agent
+# WeCom Cake Agent
 
-当前定位：面向小微商户的企业微信订单接待 Agent，第一个落地场景是蛋糕店订单确认。原聚餐组织流程保留为兼容场景。
+面向小微烘焙商户的企业微信订单接待 Agent。
 
-## 目标场景
+项目通过企业微信智能机器人接待客户，使用 Dify 完成自然语言意图识别和字段抽取，
+由 FastAPI 管理订单状态、报价、定金和履约流程，并提供 React 管理台供店主处理订单。
+项目内置 mock 模式，可以在没有企业微信或 Dify 账号的情况下完成本地开发和演示。
 
-客户通过企业微信描述订单需求，机器人负责收集客户姓名、联系电话、商品、数量、尺寸、口味、取货时间和备注，字段完整后生成订单确认文本；客户确认后写入订单，并通过 Outbox 通知店主。
+## 主要能力
 
-订单 Dify 可以先使用本地规则模式；需要真实大模型抽取时，按 [docs/order-dify-workflow.md](docs/order-dify-workflow.md) 配置独立 Workflow。
+- 企业微信群聊、单聊消息接入
+- 客户自然语言下单和字段追问
+- 客户资料、商品、尺寸、口味、时间、地址和备注收集
+- 店主报价、接受客户预期价、客户确认或拒绝报价
+- 报价历史、客户反馈和重新报价
+- 订单定金计算和线下收款确认
+- 订单制作、可取货、已完成等履约状态
+- 四位营业日订单号，例如 `10.09-0001`
+- 取消订单后恢复、修改和店主留言
+- 菜单咨询、无意义商品和无意义配送拦截
+- Outbox 可靠发送和失败重试
+- React 管理台今日工作台、订单列表、订单详情、月历和操作面板
+- SQLite 本地开发与 PostgreSQL 生产部署
+- Docker Compose、Alembic 和 Nginx 部署支持
 
-## 设计原则
+## 适用场景
 
-- 消息接入与幂等入库
-- Dify 负责意图识别、结构化抽取和方案生成
-- FastAPI 负责业务状态机和数据持久化
-- 发送结果可追踪、失败可重试
-- 支持 mock 模式，便于无外部账号时开发与演示
+当前首先面向蛋糕和烘焙类商户，但订单模型使用通用的 `scenario` 和
+`requirements` 结构，可以继续扩展到花店、维修店、打印店等订单确认场景。
 
-## 当前状态
-
-第一阶段：FastAPI 项目骨架与健康检查已实现。
-
-第二阶段：mock 企业微信消息入口已实现，支持消息标准化与 `msg_id` 幂等去重。
-
-第三阶段：Dify mock 适配层已实现，消息入库后返回结构化分析结果。
-
-第四阶段：聚餐活动状态机已实现，支持活动创建和合法状态流转。
-
-第五阶段：参与者模型已实现，支持加入、退出和偏好更新。
-
-第六阶段：Dify mock 已支持从自然语言消息中抽取聚餐偏好并自动更新参与者。
-
-第七阶段：候选方案生成、投票和最终方案确认已实现。
-
-第八阶段：Outbox 发送链路已实现，支持 pending、sent、failed 和重试。
-
-第九阶段：活动提醒已实现，支持 APScheduler 调度、投票截止提醒和活动开始提醒。
-
-第十阶段：真实 Dify Workflow HTTP 客户端已实现，可通过环境变量切换 mock 和真实模式。
-
-第十一阶段：企业微信群机器人 Webhook 发送客户端已实现，可通过环境变量切换 mock 和真实发送。
-
-第十二阶段：只读管理查询接口已实现，可查看总览、活动详情、消息、Outbox 和提醒。
-
-第十三阶段：PostgreSQL、Alembic 和 Docker Compose 已接入，支持正式数据库迁移与容器部署。
-
-第十四阶段：端到端演示脚本已实现，并修复了投票方案序号在历史数据下的映射问题。
-
-第十五阶段：企业微信官方回调入口已实现，支持签名校验、AES 解密、XML 解析和消息处理。
-
-第十六阶段：企业微信自建应用消息发送客户端已实现，群聊和单聊均可通过应用 API 回复。
-
-第十七阶段：联调状态接口和企业微信回调调试工具已实现，并补充完整联调检查清单。
-
-第十八阶段：React + TypeScript + Vite 管理前端已实现，支持总览、活动详情、消息和联调状态查看。
-
-第十九阶段：事务 Outbox、回调时间窗口和提醒防重复派发已实现。
-
-第二十阶段：Dify Workflow 测试集、真实云 Dify 评测脚本和输出契约验证已完成。
-
-第二十一阶段：前端生产镜像、Nginx 反向代理、HTTP 与 HTTPS Compose 部署已实现。
-
-当前 1.6：项目定位为面向小微商户的企业微信订单接待 Agent。已完成订单领域模型、
-按日四位订单号、客户需求确认、店主报价、客户报价确认、定金、制作/可取货/完成状态、
-Outbox 通知，以及带月历和订单操作的 React 管理台。
-
-## 本地启动
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir src --reload
-```
-
-健康检查：`http://127.0.0.1:8000/health`
-
-Mock 企业微信消息接收：
-
-```powershell
-Invoke-RestMethod -Method Post `
-  -Uri http://127.0.0.1:8000/wecom/messages `
-  -ContentType "application/json" `
-  -Body '{"msg_id":"wecom-msg-001","group_id":"group-001","group_name":"周末聚餐群","sender_id":"user-001","sender_name":"张三","msg_type":"text","content":"周六晚上一起吃饭吗？"}'
-```
-
-## 订单 Agent
-
-默认场景为蛋糕订单确认：
+典型业务流程：
 
 ```text
-AGENT_SCENARIO=order
-WECOM_OWNER_USER_ID=店主的企业微信userid
-ORDER_NOTIFICATION_CHANNEL=auto
+客户咨询或下单
+  -> Bot 收集订单字段
+  -> 客户确认订单信息
+  -> 店主报价
+  -> 客户确认报价
+  -> 按规则收取定金
+  -> 店主制作并确认可取货
+  -> 客户取货，订单完成
 ```
 
-订单字段完整后，机器人会生成确认文本；客户确认需求后写入 `orders` 和
-`order_confirmations`，并创建一条“待报价”通知给店主。店主完成报价后，
-客户需要再次确认报价，订单才会进入制作或等待定金。
+## 技术架构
 
-订单生命周期：
+```text
+企业微信智能机器人 / 自建应用 / 回调
+                  |
+                  v
+              FastAPI
+                  |
+        +---------+----------+
+        |                    |
+        v                    v
+      Dify              业务服务层
+  意图与字段抽取      订单、报价、定金、履约
+        |                    |
+        +---------+----------+
+                  |
+                  v
+       SQLAlchemy + Alembic
+                  |
+                  v
+              PostgreSQL
+                  |
+                  v
+              Outbox
+      客户回复 / 店主通知 / 重试
+
+React 管理台
+  -> 今日工作台
+  -> 订单详情与操作
+  -> 月历和订单筛选
+```
+
+技术栈：
+
+| 模块 | 技术 |
+| --- | --- |
+| 后端 API | FastAPI、Pydantic |
+| 业务持久化 | SQLAlchemy、Alembic |
+| 数据库 | SQLite、PostgreSQL |
+| Agent 工作流 | Dify Workflow，支持 mock 和 HTTP 模式 |
+| 企业微信接入 | 智能机器人长连接、自建应用 API、Webhook、官方回调 |
+| 异步发送 | 事务 Outbox、失败重试 |
+| 管理台 | React、TypeScript、Vite、Lucide |
+| 部署 | Docker Compose、Nginx、HTTP/HTTPS |
+
+## 订单状态
 
 ```text
 collecting
@@ -108,16 +97,16 @@ collecting
   -> completed
 ```
 
-- 客户确认需求后进入 `confirmed`，等待店主报价。
-- 店主报价后，客户确认报价；无需定金时自动进入 `preparing`。
-- 满足定金规则时，店主先确认收到定金，再进入 `preparing`。
-- 店主确认蛋糕做好后进入 `ready`，客户取货后进入 `completed`。
+订单可以被取消。取消后支持店主留言，也支持客户按订单号恢复订单或重新打开修改。
 
-四位订单号按营业日重置：
+报价状态独立于履约状态：
 
 ```text
-10.07-0001
-10.07-0002
+pending_owner
+pending_customer
+approved
+rejected
+superseded
 ```
 
 定金规则：
@@ -125,318 +114,65 @@ collecting
 ```text
 取货日期距离下单日期超过 5 个自然日
 且最终确认报价 > 200 元
-定金 = 最终报价 × 20%
+定金 = 最终报价 x 20%
 ```
 
-金额使用 `Decimal`，不取整；例如 `228 × 20% = 45.6`。
+金额使用 `Decimal`，不强制取整。
 
-同一直聊存在多笔待确认报价时，客户需要回复订单号：
+## 环境要求
 
-```text
-确认报价 10.07-0006
-```
+- Python 3.11+
+- Node.js 20+
+- Docker Desktop
+- 可选：Dify 账号和企业微信企业账号
 
-也支持 `0006`、`订单号 6` 等写法。未指定订单号时，机器人会列出待确认报价，
-不会自动确认最新一笔。
+## 本地启动
 
-店主报价时可以填写给客户的备注，例如“亲亲给您打了八折”。客户拒绝报价或在
-报价沟通中回复备注时，原话会作为客户留言发给店主。
-
-常见的附加要求会在入库前转换为中文，例如 `candles` 会保存并展示为“蜡烛数量”。
-`pieces_per_box` 会转换为“规格：一套四个”这类表达。
-
-如果同一会话需要重新开始，可以发送“清除记忆”或“清除记录”。未确认的旧草稿
-会被关闭，下一条订单需求会创建新的订单上下文。
-
-店主通知通道：
-
-- `auto`：优先自建应用 API，其次群 Webhook，最后智能机器人主动单聊
-- `app`：自建应用 `message/send`
-- `webhook`：群机器人 Webhook
-- `active`：智能机器人主动 `send_message`
-
-角色划分：
-
-- 智能机器人 Bot：面向客户，接收群聊和客户私聊，负责下单接待、追问和确认。
-- 自建应用：面向店主，当前主要用于接收订单通知；后续可扩展为店主指令和管理入口。
-
-机器人会把“今天/明天/后天”等相对日期补充为 `(月.日)` 前缀后再通知店主，例如：
-
-```text
-(10.6)今天下午五点
-(10.13)五天后的下午一点
-```
-
-报价阶段的客户反馈不会直接取消订单。客户表达“好贵”“太贵了”等内容时，
-机器人会把原话转给店主重新报价，并使用安抚话术回复客户。
-
-已取消订单支持店主向客户发送一条留言。客户后续带上订单号回来时，机器人会
-确认这笔已取消订单，并让客户选择恢复订单或修改备注、商品规格等内容。
-客户发送“你好”“你这里有什么蛋糕”等寒暄或菜单询问时，机器人会直接返回蛋糕菜单，
-并提示支持高端私人定制。明显的无意义商品或离谱配送地，例如“混凝土蛋糕”、
-“水泥蛋糕”“送到月球”，也会在进入 Dify 前被本地拦截，使用约束话术并附上菜单回复，
-不会生成订单。
-
-管理台已移除旧聚餐业务的“活动”入口。历史聚餐数据和没有订单号的旧订单
-可以通过 `scripts/cleanup_legacy_data.py` 先 dry-run，再执行清理。
-
-订单 Dify 支持三种模式：
-
-```text
-ORDER_DIFY_MODE=auto
-```
-
-- `auto`：有 `DIFY_ORDER_API_KEY` 时优先使用，否则复用 `DIFY_API_KEY`
-- `mock`：使用本地规则解析，适合无 Dify 开发
-- `real`：使用订单专用 Dify 配置
-
-订单 Workflow 的提示词、输出字段和测试输入见
-[docs/order-dify-workflow.md](docs/order-dify-workflow.md)。
-1.6 新增 `customer_expected_price`、`customer_expected_price_text`、
-`confirm_quote` 和 `reject_quote`，需要同步更新真实 Dify Workflow。
-
-## 接入真实 Dify
-
-在 Dify 中创建一个 Workflow 应用，并将 `.env` 配置为：
-
-```text
-DIFY_CLIENT_MODE=real
-DIFY_API_BASE=https://api.dify.ai/v1
-DIFY_API_KEY=your-dify-app-api-key
-```
-
-Workflow 的最终输出需要包含以下字段，后端会用 Pydantic 校验：
-
-```text
-intent
-activity_title
-suggested_time
-deadline
-available_time
-cuisine_preference
-budget_max
-notes
-proposal_choice
-missing_fields
-reply
-```
-
-只需要 Dify 应用 API Key 和应用地址，不需要在项目里配置 Dify 登录账号或密码。
-
-订单场景使用独立的输出契约和评测：
+### 1. 创建 Python 环境
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\evaluate_order_dify_cases.py
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 ```
 
-评测集位于 [docs/order-dify-test-cases.json](docs/order-dify-test-cases.json)。
-
-## 接入企业微信发送
-
-在群机器人设置中获取 Webhook 地址，并配置：
-
-```text
-WECOM_SENDER_MODE=webhook
-WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key
-WECOM_SENDER_TIMEOUT_SECONDS=10
-```
-
-当前实现使用企业微信官方群机器人 Webhook，适合验证消息发送和 Outbox 状态。群机器人 Webhook 只能发送，不能读取群聊消息；完整接收普通群聊消息仍需要企业微信智能机器人长连接或会话内容存档能力。
-
-## 管理接口
-
-本地开发默认不要求管理密钥。部署到共享环境前，建议设置：
-
-```text
-ADMIN_API_KEY=your-admin-key
-```
-
-设置后请求需要携带：
-
-```text
-X-Admin-Key: your-admin-key
-```
-
-可用接口：
-
-```text
-GET /admin/overview
-GET /admin/orders
-GET /admin/orders/{order_id}
-POST /admin/orders/{order_id}/quote
-POST /admin/orders/{order_id}/deposit-paid
-POST /admin/orders/{order_id}/ready
-POST /admin/orders/{order_id}/completed
-POST /admin/orders/{order_id}/message
-GET /admin/messages
-```
-
-运行测试：
+### 2. 准备配置
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest
+Copy-Item .env.example .env
 ```
 
-## 数据库迁移
+本地默认使用 SQLite、mock Dify 和 mock 企业微信发送器，可以直接启动。
 
-本地 SQLite 模式仍可使用 `AUTO_CREATE_TABLES=true` 自动建表。需要迁移管理时运行：
+### 3. 启动后端
 
 ```powershell
-.\.venv\Scripts\alembic.exe upgrade head
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir src --reload
 ```
 
-切换 PostgreSQL 时配置：
+健康检查：
 
 ```text
-DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/wecom_cake
-AUTO_CREATE_TABLES=false
+http://127.0.0.1:8000/health
 ```
 
-## Docker Compose
-
-Compose 会启动 PostgreSQL 和应用，并在应用启动前执行 `alembic upgrade head`：
+### 4. 启动管理台
 
 ```powershell
-docker compose up --build
+cd apps/admin-web
+npm install
+npm run dev
 ```
 
-启用企业微信智能机器人长连接 worker：
-
-```powershell
-docker compose --profile aibot up -d --build aibot-worker
-```
-
-可在项目根目录的 `.env` 中覆盖 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 以及外部服务配置。
-
-## 端到端演示
-
-使用 mock Dify 和 mock 企微发送器，启动服务后运行：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\demo_dinner_flow.py
-```
-
-脚本会依次执行：
+管理台地址：
 
 ```text
-健康检查
-创建聚餐活动
-收集参与者偏好
-生成候选方案
-开始投票
-成员投票
-确认最终方案
-创建并发送提醒
-查询管理详情
+http://127.0.0.1:5173
 ```
 
-## 企业微信回调
+如果配置了 `ADMIN_API_KEY`，在管理台左侧输入管理密钥。密钥只保存在浏览器
+`sessionStorage`。
 
-企业微信后台的回调地址配置为：
-
-```text
-https://your-domain.example/wecom/callback
-```
-
-本地 `.env` 需要配置：
-
-```text
-WECOM_CORP_ID=your-corp-id
-WECOM_CALLBACK_TOKEN=your-callback-token
-WECOM_ENCODING_AES_KEY=your-43-character-aes-key
-WECOM_CALLBACK_MAX_AGE_SECONDS=300
-```
-
-当前回调实现会校验签名、解密消息、解析 text 消息，并复用现有业务处理与 Outbox 链路。
-
-回调请求超过允许时间窗口时会被拒绝，用来降低重放风险；消息本身的幂等仍由 `wecom_msg_id` 保证。
-
-真实部署时回调地址必须是企业微信可访问的 HTTPS 地址。当前已同时实现群机器人 Webhook 和自建应用 API 发送，可通过 `WECOM_SENDER_MODE` 切换。
-
-### 自建应用发送
-
-如果使用自建应用回调，可以将发送模式切换为应用 API：
-
-```text
-WECOM_SENDER_MODE=app
-WECOM_CORP_ID=your-corp-id
-WECOM_AGENT_ID=your-agent-id
-WECOM_APP_SECRET=your-app-secret
-WECOM_API_BASE=https://qyapi.weixin.qq.com
-```
-
-发送器会自动获取并缓存 `access_token`：
-
-```text
-普通 chat_id：调用 appchat/send
-direct-{user_id}：调用 message/send
-```
-
-当前回调解析器会把没有 `ChatId` 的消息标记为 `direct-{sender_id}`，用于单聊回复。
-
-需要注意：自建应用回调可以接收成员发给应用的单聊消息，但普通企业微信群聊消息不会默认推送进来。若要让机器人读取普通群聊消息，需要接入企业微信智能机器人长连接或会话内容存档；现阶段更稳妥的模式是“单聊接收指令 + 群机器人 Webhook 广播结果”。
-
-智能机器人长连接配置和启动方式见 [docs/wecom-aibot-long-connection.md](docs/wecom-aibot-long-connection.md)。
-
-## 联调工具
-
-查询当前配置是否满足企业微信和 Dify 联调要求：
-
-```text
-GET /admin/integration-status
-```
-
-接口不会返回密钥，只返回当前模式、缺失配置项和数据库类型。
-
-调试企业微信回调：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\debug_wecom_callback.py roundtrip
-.\.venv\Scripts\python.exe scripts\debug_wecom_callback.py verify
-.\.venv\Scripts\python.exe scripts\debug_wecom_callback.py post
-```
-
-调试企业微信自建应用发送：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\debug_wecom_sender.py token
-.\.venv\Scripts\python.exe scripts\debug_wecom_sender.py send --target chat-id
-.\.venv\Scripts\python.exe scripts\debug_wecom_sender.py send --target direct-user-id
-```
-
-创建应用群聊并发送首条测试消息：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\create_wecom_group.py --name "蛋糕订单群" --userids user-a,user-b
-```
-
-准备公网 HTTPS 回调地址：
-
-```powershell
-.\scripts\start_wecom_tunnel.ps1 -Port 8000
-```
-
-脚本会优先使用 `cloudflared`，其次使用 `ngrok`。启动后把打印出来的 HTTPS 地址作为企业微信回调域名，回调路径保持 `/wecom/callback`。
-
-完整步骤和常见错误见 [docs/wecom-integration-checklist.md](docs/wecom-integration-checklist.md)。
-
-## Dify Workflow 评测
-
-真实 Dify 评测：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\evaluate_dify_cases.py
-```
-
-只运行单条用例：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\evaluate_dify_cases.py --only create_simple
-```
-
-测试集位于 [docs/dify-workflow-test-cases.json](docs/dify-workflow-test-cases.json)，当前 14 条用例全部通过。
-
-## 生产部署
+## Docker 部署
 
 HTTP 模式：
 
@@ -444,7 +180,18 @@ HTTP 模式：
 docker compose up --build
 ```
 
-管理前端地址：`http://localhost:8080`
+服务地址：
+
+```text
+后端 API: http://localhost:8000
+管理台:   http://localhost:8080
+```
+
+启用企业微信智能机器人长连接 worker：
+
+```powershell
+docker compose --profile aibot up -d --build aibot-worker
+```
 
 HTTPS 模式：
 
@@ -455,37 +202,204 @@ $env:TLS_KEY_PATH = "./certs/privkey.pem"
 docker compose -f docker-compose.yml -f docker-compose.https.yml up --build
 ```
 
-Nginx 配置说明见 [deploy/nginx/README.md](deploy/nginx/README.md)。
+如果重新创建了 `app` 容器，建议同时重建 `web`，让 Nginx 重新解析后端地址：
 
-## 管理前端
+```powershell
+docker compose up -d --force-recreate app web
+```
 
-先启动后端 `127.0.0.1:8000`，再运行：
+## 企业微信接入
+
+项目支持以下发送和接收方式：
+
+- 企业微信智能机器人长连接
+- 自建应用消息发送
+- 群机器人 Webhook
+- 企业微信官方回调
+
+订单通知通道：
+
+```text
+ORDER_NOTIFICATION_CHANNEL=auto
+```
+
+可选值：
+
+| 值 | 说明 |
+| --- | --- |
+| `auto` | 优先自建应用，其次 Webhook，最后智能机器人主动发送 |
+| `app` | 使用自建应用 `message/send` |
+| `webhook` | 使用群机器人 Webhook |
+| `active` | 使用智能机器人主动 `send_message` |
+
+智能机器人长连接配置：
+
+```text
+WECOM_AIBOT_ID=your-aibot-id
+WECOM_AIBOT_SECRET=your-aibot-secret
+WECOM_AIBOT_NAME=your-aibot-name
+WECOM_AIBOT_REQUIRE_MENTION=true
+WECOM_OWNER_USER_ID=owner-userid
+```
+
+更多说明：
+
+- [智能机器人长连接](docs/wecom-aibot-long-connection.md)
+- [企业微信联调检查清单](docs/wecom-integration-checklist.md)
+
+## Dify Workflow
+
+订单场景默认使用：
+
+```text
+ORDER_DIFY_MODE=auto
+```
+
+模式说明：
+
+| 模式 | 说明 |
+| --- | --- |
+| `mock` | 使用本地规则解析，适合开发和测试 |
+| `auto` | 优先订单专用 API Key，否则复用通用 Dify Key |
+| `real` | 使用订单专用 Dify Workflow |
+
+订单 Workflow 的输入、输出字段和提示词见：
+
+[订单 Dify Workflow](docs/order-dify-workflow.md)
+
+运行订单评测：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_order_dify_cases.py
+```
+
+## 管理台
+
+管理台当前包含：
+
+- 今日工作台：待店主报价、待客户确认价格、待收定金、制作中、可取货、今日完成
+- 订单列表和订单详情
+- 报价输入、接受预期价、已收定金、已做好、已取货
+- 报价历史和确认记录
+- 取消订单留言
+- 订单月历
+- 入站消息查看
+- 企业微信、Dify、数据库联调状态
+
+## 管理 API
+
+如果设置了 `ADMIN_API_KEY`，请求需要携带：
+
+```text
+X-Admin-Key: your-admin-key
+```
+
+主要接口：
+
+```text
+GET  /admin/overview
+GET  /admin/orders
+GET  /admin/orders/{order_id}
+POST /admin/orders/{order_id}/quote
+POST /admin/orders/{order_id}/deposit-paid
+POST /admin/orders/{order_id}/ready
+POST /admin/orders/{order_id}/completed
+POST /admin/orders/{order_id}/message
+GET  /admin/messages
+GET  /admin/integration-status
+```
+
+## 数据库迁移
+
+本地 SQLite 可以使用：
+
+```text
+AUTO_CREATE_TABLES=true
+```
+
+生产环境建议使用 Alembic：
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+PostgreSQL 示例：
+
+```text
+DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/wecom_cake
+AUTO_CREATE_TABLES=false
+```
+
+## 测试
+
+后端测试：
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+前端类型检查和生产构建：
 
 ```powershell
 cd apps/admin-web
-npm install
-npm run dev
+npm run build
 ```
 
-访问：
+订单 Dify mock 评测：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_order_dify_cases.py
+```
+
+## 维护脚本
+
+回填有明确取货日期但缺少 `scheduled_at` 的历史订单：
+
+```powershell
+docker exec wecom-cake-agent-app-1 python scripts/backfill_scheduled_at.py
+docker exec wecom-cake-agent-app-1 python scripts/backfill_scheduled_at.py --execute
+```
+
+清理旧业务和不完整订单：
+
+```powershell
+docker exec wecom-cake-agent-app-1 python scripts/cleanup_legacy_data.py
+docker exec wecom-cake-agent-app-1 python scripts/cleanup_legacy_data.py --execute
+```
+
+两个脚本默认都是 dry-run，只有传入 `--execute` 才会写入数据库。
+
+## 项目结构
 
 ```text
-http://127.0.0.1:5173
+apps/admin-web/                  React 管理台
+deploy/nginx/                    Nginx 和 HTTPS 配置
+docs/                            Dify、企业微信和联调文档
+migrations/                      Alembic 迁移
+scripts/                         调试、评测、回填和维护脚本
+src/app/api/                     FastAPI 路由
+src/app/clients/                 Dify、企业微信客户端
+src/app/schemas/                 Pydantic 数据结构
+src/app/services/                订单、报价、Outbox 和业务服务
+tests/                           后端测试
 ```
 
-前端开发服务器会把 `/api` 代理到 FastAPI。若配置了 `ADMIN_API_KEY`，可在左侧输入管理密钥，密钥只保存在浏览器 `sessionStorage`。
+## 安全建议
 
-## 1.6 已完成范围
+- 不要把 `.env`、企业微信密钥、Dify API Key 或数据库密码提交到仓库
+- 生产环境必须设置 `ADMIN_API_KEY`
+- 企业微信回调必须使用公开可访问的 HTTPS 地址
+- 回调请求使用时间窗口校验，业务消息使用 `wecom_msg_id` 保证幂等
+- 生产环境建议使用 PostgreSQL，不要继续使用本地 SQLite
 
-1. 订单领域模型、迁移、状态机、报价记录和每日序号
-2. `create_order`、`provide_requirement`、`update_requirement`、`confirm_order`、
-   `confirm_quote`、`reject_quote`、`cancel_order` 意图
-3. 客户预期价格、字段追问、订单确认文本和报价确认文本
-4. 店主报价、接受预期价、客户确认/拒绝、定金和履约状态
-5. 报价和履约通知通过 Outbox 发送，失败可重试
-6. React 今日工作台、20 秒轮询、月历、报价历史和订单操作
-7. 订单 Dify mock 评测 11/11 通过
+## 参与贡献
+
+1. Fork 仓库并创建功能分支
+2. 保持改动范围清晰
+3. 为新行为补充测试
+4. 提交前运行后端测试和前端构建
+5. 提交 Pull Request，并说明行为变化和验证方式
 
 ## 许可
 
-本项目计划使用 MIT License。
+当前仓库尚未附带独立许可证文件。对外分发或商用前，请先明确许可证和授权范围。
